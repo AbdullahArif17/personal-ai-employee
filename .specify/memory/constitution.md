@@ -1,55 +1,66 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Personal AI Employee Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. LOCAL-FIRST
+All sensitive data stays on local machine. Obsidian vault is the single source of truth.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. SECURITY
+All credentials in .env file only. Never stored in vault or committed to git.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. HUMAN-IN-THE-LOOP
+No external action (email send, payment, social post) executes without a human moving a file to /Approved.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. AGENT SKILLS
+All AI logic must be implemented as SKILL.md files that Claude Code can read and follow.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. DRY-RUN DEFAULT
+All watcher and action scripts default to DRY_RUN=true during development.
 
-### [PRINCIPLE_6_NAME]
+### VI. PYTHON 3.13+
+All scripts use Python 3.13 or higher with uv for package management.
 
+### VII. FAIL SAFE
+On any error, scripts log and pause — they never silently skip or auto-retry destructive actions.
 
-[PRINCIPLE__DESCRIPTION]
+### VIII. AUDITABILITY
+Every action the AI takes is logged to /Vault/Logs/YYYY-MM-DD.json.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Additional Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### Technology Stack
+- Use Python 3.13+ for all automation scripts
+- Use uv for Python package management
+- Use Claude Code for AI interaction and skill management
+- Store all personal data locally in Obsidian vault format
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### Security Requirements
+- All sensitive credentials must be stored in .env files and never committed to version control
+- Implement strict access controls for all external APIs
+- Encrypt all sensitive data at rest
+- Log all actions for audit trail
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### Data Management
+- Obsidian vault serves as the single source of truth
+- All data processing happens locally
+- No cloud storage of personal information unless explicitly approved by user
+- Maintain data integrity and backup procedures
+
+## Development Workflow
+
+### Code Review Process
+- All changes must follow the principles outlined in this constitution
+- Security-sensitive changes require additional review
+- Human-in-the-loop approval required for any script that performs external actions
+
+### Quality Gates
+- All scripts must implement fail-safe mechanisms
+- Proper error handling and logging required
+- Dry-run capability for all automation scripts
+- Audit logging for all actions taken
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other practices in the Personal AI Employee project. Any amendments to these principles must be documented with justification and approved by the project maintainer. All implementations must comply with these principles, and any deviation must be explicitly documented and justified.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-02-20 | **Last Amended**: 2026-02-20

@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git config:*)",
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1:*)",
+      "Bash(chmod:*)",
+      "Bash(python test_imports.py:*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(uv pip install:*)",
+      "Bash(source:*)"
+    ]
+  }
+}
