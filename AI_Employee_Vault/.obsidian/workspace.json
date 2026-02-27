@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "skills/SKILL_triage.md",
+                "file": "Dashboard.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "SKILL_triage"
+              "title": "Dashboard"
             }
           }
         ]
@@ -183,12 +183,14 @@
       "bases:Create new base": false
     }
   },
-  "active": "ec8305275355bc47",
+  "active": "6ba2922e4dc81c6c",
   "lastOpenFiles": [
+    "skills/SKILL_approval_process.md",
+    "skills/SKILL_triage.md",
     "skills/SKILL_response_formatting.md",
     "skills/SKILL_dashboard_update.md",
-    "skills/SKILL_approval_process.md",
+    "Company_Handbook.md",
     "Dashboard.md",
-    "Company_Handbook.md"
+    "Inbox/weekly_summary.txt"
   ]
 }
