@@ -12,12 +12,21 @@ The Personal AI Employee is a Bronze-tier automation system that:
 
 ## Features
 
-1. **Obsidian Vault Structure**: Organized folder system with Inbox, Needs_Action, Done, Logs, Pending_Approval, and Approved folders
-2. **Dashboard.md**: Live summary showing pending items, recent activity, and status
-3. **Company_Handbook.md**: Rules of engagement for the AI (tone, approval thresholds, contact list)
-4. **Filesystem Watcher**: Python script monitoring the Inbox folder and copying new files to Needs_Action with metadata
-5. **Agent SKILL.md files**: Markdown skill files Claude Code reads to process tasks
-6. **Claude Code Integration**: Automated processing of tasks following skill instructions
+1. **Bronze Tier (Local Automation)**:
+   - **Obsidian Vault Structure**: Organized folder system with Inbox, Needs_Action, Done, Logs, Pending_Approval, and Approved folders
+   - **Dashboard.md**: Live summary showing pending items, recent activity, and status
+   - **Company_Handbook.md**: Rules of engagement for the AI (tone, approval thresholds, contact list)
+   - **Filesystem Watcher**: Python script monitoring the Inbox folder and copying new files to Needs_Action with metadata
+   - **Agent SKILL.md files**: Markdown skill files Claude Code reads to process tasks
+   - **Claude Code Integration**: Automated processing of tasks following skill instructions
+
+2. **Silver Tier (External Integrations)**:
+   - **Gmail Integration**: Monitor Gmail for unread emails and save them as .md files in Needs_Action folder
+   - **Email MCP Server**: Draft email replies using Gemini AI and save drafts to Pending_Approval folder
+   - **LinkedIn Poster**: Generate business posts using Gemini AI and submit them for approval
+   - **Human-in-the-Loop Workflow**: Complete approval system that monitors Approved folder and executes actions
+   - **Rate Limiting**: Enforced limits (max 10 emails per run, max 3 LinkedIn posts per day)
+   - **API Authentication**: Secure OAuth2 integration for Gmail and LinkedIn APIs
 
 ## Prerequisites
 
@@ -110,6 +119,52 @@ bash scripts/run_claude.sh
 ```
 
 Or schedule it to run periodically using cron (Linux/macOS) or Task Scheduler (Windows).
+
+### Processing Silver Tier Tasks
+
+Run the Silver tier features processor to handle Gmail, email replies, and LinkedIn posts:
+
+On Windows:
+```cmd
+scripts\process_tasks_silver.bat
+```
+
+On Linux/macOS (using Wine or similar):
+```bash
+wine cmd /c scripts\process_tasks_silver.bat
+```
+
+Alternatively, you can run the Python scripts directly on any platform:
+```bash
+python src/gmail_watcher.py
+python src/email_mcp.py
+python src/linkedin_poster.py
+```
+
+This script will:
+- Check for new Gmail messages and save them to Needs_Action
+- Process emails for reply drafts using AI
+- Generate LinkedIn post drafts
+- Monitor Approved folder for actions to execute
+- Update the dashboard
+
+### Running Individual Silver Tier Components
+
+You can also run individual components:
+
+```bash
+# Check Gmail for new messages
+python src/gmail_watcher.py
+
+# Process emails for reply drafts
+python src/email_mcp.py
+
+# Generate LinkedIn post drafts
+python src/linkedin_poster.py
+
+# Monitor Approved folder for actions
+python src/approved_watcher.py
+```
 
 ### Scheduling Claude Processing
 

@@ -74,7 +74,7 @@ class DashboardUpdater:
 | Folder | Count | Description |
 |--------|-------|-------------|
 | Inbox | 0 | New tasks waiting to be processed |
-| Needs Action | 0 | Tasks ready for Claude Code processing |
+| Needs Action | 0 | Tasks ready for AI processing |
 | Done | 0 | Completed tasks |
 | Pending Approval | 0 | Tasks awaiting human approval |
 | Approved | 0 | Approved tasks ready for execution |
@@ -87,7 +87,9 @@ class DashboardUpdater:
 ## System Status
 
 - Filesystem watcher: **Inactive**
-- Claude Code integration: **Not configured**
+- Gemini API integration: **Not configured**
+- Gmail integration: **Not configured**
+- LinkedIn integration: **Not configured**
 - Last run: **Never**
 - DRY_RUN mode: **Enabled**
 
@@ -186,6 +188,7 @@ class DashboardUpdater:
         # Update system status if possible
         # For now, we'll keep the existing system status as it may have been manually updated
         # In a real implementation, we might want to dynamically update this
+        # TODO: Add dynamic status updates for Silver tier features (Gmail, LinkedIn, etc.)
 
         # Update statistics
         stats_section = self._update_statistics(folder_counts)
@@ -273,13 +276,17 @@ class DashboardUpdater:
         return stats_content
 
     def update_system_status(self, watcher_status: str = "Inactive",
-                           claude_status: str = "Not configured",
+                           gemini_status: str = "Not configured",
+                           gmail_status: str = "Not configured",
+                           linkedin_status: str = "Not configured",
                            last_run: str = "Never",
                            dry_run: bool = True):
         """Update the system status section."""
         status_text = "## System Status\n\n"
         status_text += f"- Filesystem watcher: **{watcher_status}**\n"
-        status_text += f"- Claude Code integration: **{claude_status}**\n"
+        status_text += f"- Gemini API integration: **{gemini_status}**\n"
+        status_text += f"- Gmail integration: **{gmail_status}**\n"
+        status_text += f"- LinkedIn integration: **{linkedin_status}**\n"
         status_text += f"- Last run: **{last_run}**\n"
         status_text += f"- DRY_RUN mode: **{'Enabled' if dry_run else 'Disabled'}**\n\n"
 

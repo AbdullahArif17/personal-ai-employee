@@ -8,7 +8,11 @@
       "Bash(python3:*)",
       "Bash(pip install:*)",
       "Bash(uv pip install:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(python:*)",
+      "Bash(sudo apt-get:*)",
+      "Bash(git fetch:*)",
+      "Bash(.specify/scripts/powershell/setup-plan.ps1:*)"
     ]
   }
 }

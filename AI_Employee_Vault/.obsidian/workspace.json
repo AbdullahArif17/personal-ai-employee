@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Dashboard.md",
+                "file": "skills/SKILL_triage.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Dashboard"
+              "title": "SKILL_triage"
             }
           }
         ]
@@ -185,12 +185,25 @@
   },
   "active": "6ba2922e4dc81c6c",
   "lastOpenFiles": [
-    "skills/SKILL_approval_process.md",
-    "skills/SKILL_triage.md",
     "skills/SKILL_response_formatting.md",
     "skills/SKILL_dashboard_update.md",
-    "Company_Handbook.md",
+    "skills/SKILL_approval_process.md",
+    "Done/DONE_task1.md",
+    "Done/DONE_hello2.md",
+    "Done/DONE_detect_test.md",
+    "Done/DONE_business_test.md",
     "Dashboard.md",
-    "Inbox/weekly_summary.txt"
+    "Company_Handbook.md",
+    "skills/SKILL_triage.md",
+    "Needs_Action/task1_metadata.json",
+    "Needs_Action/task1.txt",
+    "Inbox/task1.txt",
+    "Dashboard.md.tmp.14681.1772402276334",
+    "skills/SKILL_triage.md.tmp.14681.1772402258283",
+    "Needs_Action/detect_test_metadata.json",
+    "Needs_Action/detect_test.txt",
+    "Inbox/detect_test.txt",
+    "Logs/2026-03-02.json",
+    "Needs_Action/hello2_metadata.json"
   ]
 }
