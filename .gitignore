@@ -20,6 +20,12 @@ wheels/
 .installed.cfg
 *.egg
 
+
+.env
+AI_Employee_Vault/
+*.pyc
+__pycache__/
+
 # Virtual environments
 venv/
 env/

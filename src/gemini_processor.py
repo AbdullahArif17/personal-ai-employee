@@ -37,7 +37,7 @@ class GeminiProcessor:
         genai.configure(api_key=api_key)
 
         # Set up the model
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-3-flash')
 
         # Set up dashboard updater
         self.dashboard_updater = DashboardUpdater(vault_path)
