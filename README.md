@@ -21,12 +21,13 @@ The Personal AI Employee is a Bronze-tier automation system that:
    - **Claude Code Integration**: Automated processing of tasks following skill instructions
 
 2. **Silver Tier (External Integrations)**:
-   - **Gmail Integration**: Monitor Gmail for unread emails and save them as .md files in Needs_Action folder
+   - **Gmail Integration**: Monitor Gmail for unread emails using IMAP and save them as .md files in Needs_Action folder
    - **Email MCP Server**: Draft email replies using Gemini AI and save drafts to Pending_Approval folder
-   - **LinkedIn Poster**: Generate business posts using Gemini AI and submit them for approval
+   - **Email Sending**: Send approved replies via SMTP using Gmail App Password (no API required)
+   - **LinkedIn Poster**: Generate business posts using Gemini AI and save as drafts for manual posting
    - **Human-in-the-Loop Workflow**: Complete approval system that monitors Approved folder and executes actions
    - **Rate Limiting**: Enforced limits (max 10 emails per run, max 3 LinkedIn posts per day)
-   - **API Authentication**: Secure OAuth2 integration for Gmail and LinkedIn APIs
+   - **Secure Authentication**: Uses Gmail App Password for IMAP/SMTP access (no credit card required)
 
 ## Prerequisites
 

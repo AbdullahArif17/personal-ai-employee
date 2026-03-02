@@ -1,9 +1,8 @@
 """
-LinkedIn authentication module for the Personal AI Employee system.
-Handles authentication for LinkedIn API access.
+LinkedIn module for the Personal AI Employee system.
+Handles LinkedIn post preparation for manual posting.
 """
 import os
-import requests
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -12,165 +11,43 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_linkedin_access_token() -> Optional[str]:
+def validate_linkedin_setup() -> bool:
     """
-    Get LinkedIn access token from environment variable.
+    Validate LinkedIn setup for manual posting.
+    Since we're using file-based drafts, this just confirms the environment is set up.
 
     Returns:
-        Access token string if available, None otherwise
+        True if LinkedIn is configured for manual posting, False otherwise
     """
-    access_token = os.getenv('LINKEDIN_ACCESS_TOKEN')
-
-    if not access_token:
-        print("Error: LinkedIn access token not found in environment variables.")
-        print("Please set LINKEDIN_ACCESS_TOKEN in your .env file.")
-        return None
-
-    return access_token
+    # For the file-based approach, we don't need API credentials
+    # This is just a placeholder for future enhancements
+    return True
 
 
-def validate_linkedin_token(access_token: str) -> bool:
+def get_linkedin_manual_posting_info() -> str:
     """
-    Validate the LinkedIn access token by making a test request.
-
-    Args:
-        access_token: LinkedIn access token to validate
+    Get information about manual LinkedIn posting process.
 
     Returns:
-        True if token is valid, False otherwise
+        String with instructions for manual posting
     """
-    if not access_token:
-        return False
-
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0'
-    }
-
-    try:
-        # Test request to get basic profile information
-        response = requests.get(
-            'https://api.linkedin.com/v2/me',
-            headers=headers,
-            timeout=10
-        )
-
-        return response.status_code == 200
-
-    except requests.RequestException as e:
-        print(f"Error validating LinkedIn token: {e}")
-        return False
-
-
-def get_authenticated_headers() -> Optional[dict]:
-    """
-    Get authenticated headers for LinkedIn API requests.
-
-    Returns:
-        Dictionary with authentication headers if valid, None otherwise
-    """
-    access_token = get_linkedin_access_token()
-
-    if not access_token:
-        return None
-
-    if not validate_linkedin_token(access_token):
-        print("Error: LinkedIn access token is not valid.")
-        return None
-
-    return {
-        'Authorization': f'Bearer {access_token}',
-        'Content-Type': 'application/json',
-        'X-Restli-Protocol-Version': '2.0.0'
-    }
-
-
-def refresh_linkedin_token_if_needed():
-    """
-    LinkedIn tokens are typically long-lived, but if refresh is needed,
-    this would handle it. Currently just validates the existing token.
-    """
-    access_token = get_linkedin_access_token()
-    if not access_token:
-        return False
-
-    return validate_linkedin_token(access_token)
-
-
-def get_current_user_profile() -> Optional[dict]:
-    """
-    Get the current user's LinkedIn profile information.
-
-    Returns:
-        Profile information dictionary if successful, None otherwise
-    """
-    headers = get_authenticated_headers()
-    if not headers:
-        return None
-
-    try:
-        response = requests.get(
-            'https://api.linkedin.com/v2/me',
-            headers=headers,
-            timeout=10
-        )
-
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f"Error getting profile: {response.status_code} - {response.text}")
-            return None
-
-    except requests.RequestException as e:
-        print(f"Error getting LinkedIn profile: {e}")
-        return None
-
-
-def get_current_user_email() -> Optional[str]:
-    """
-    Get the current user's email address from LinkedIn.
-
-    Returns:
-        Email address string if successful, None otherwise
-    """
-    headers = get_authenticated_headers()
-    if not headers:
-        return None
-
-    try:
-        response = requests.get(
-            'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))',
-            headers=headers,
-            timeout=10
-        )
-
-        if response.status_code == 200:
-            data = response.json()
-            elements = data.get('elements', [])
-            if elements:
-                email_handle = elements[0].get('handle~', {})
-                return email_handle.get('emailAddress')
-
-        return None
-
-    except requests.RequestException as e:
-        print(f"Error getting LinkedIn email: {e}")
-        return None
+    info = """
+LinkedIn Posting Instructions:
+1. Posts are generated as draft files in the Pending_Approval folder
+2. Review the content and make any necessary edits
+3. Move the file to the Approved folder to mark it as ready
+4. The system will save it as a ready-to-post file in the Done folder
+5. Manually copy the content from the done file and paste it to LinkedIn
+6. Publish the post manually on LinkedIn
+"""
+    return info
 
 
 if __name__ == '__main__':
-    # Test the authentication
-    token = get_linkedin_access_token()
-    if token:
-        print("LinkedIn access token found")
-        if validate_linkedin_token(token):
-            print("Token validation successful")
-
-            profile = get_current_user_profile()
-            if profile:
-                print(f"Profile retrieved: {profile.get('localizedFirstName', 'Unknown')} {profile.get('localizedLastName', 'Unknown')}")
-        else:
-            print("Token validation failed")
+    # Test the setup
+    valid = validate_linkedin_setup()
+    if valid:
+        print("LinkedIn manual posting is configured!")
+        print(get_linkedin_manual_posting_info())
     else:
-        print("No LinkedIn access token found")
+        print("LinkedIn manual posting is not configured!")

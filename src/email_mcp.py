@@ -14,11 +14,7 @@ from google import genai
 # Load environment variables
 load_dotenv()
 
-try:
-    from gmail_auth import get_authenticated_service
-except ImportError as e:
-    print(f"Error importing Gmail auth: {e}")
-    print("Please make sure gmail_auth.py is available")
+# Note: Using SMTP instead of Gmail API, so no need for Gmail auth import
 
 
 class EmailMCP:
@@ -183,8 +179,8 @@ Review this reply and move to Approved folder to send via email.
                 print(f"Could not extract email details from: {draft_file_path.name}")
                 return False
 
-            # Send the email via Gmail API
-            success = self._send_email_via_gmail(recipient, subject, body)
+            # Send the email via SMTP
+            success = self._send_email_via_smtp(recipient, subject, body)
 
             if success:
                 # Move the draft file to Done folder
@@ -286,9 +282,9 @@ Review this reply and move to Approved folder to send via email.
 
         return None
 
-    def _send_email_via_gmail(self, to: str, subject: str, body: str) -> bool:
+    def _send_email_via_smtp(self, to: str, subject: str, body: str) -> bool:
         """
-        Send an email via Gmail API.
+        Send an email via SMTP.
 
         Args:
             to: Recipient email address
@@ -298,33 +294,43 @@ Review this reply and move to Approved folder to send via email.
         Returns:
             True if successful, False otherwise
         """
-        service = get_authenticated_service()
-        if not service:
-            print("Error: Could not authenticate with Gmail API")
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        # Get Gmail credentials from environment
+        gmail_email = os.getenv('GMAIL_EMAIL')
+        gmail_app_password = os.getenv('GMAIL_APP_PASSWORD')
+
+        if not gmail_email or not gmail_app_password:
+            print("Error: GMAIL_EMAIL and GMAIL_APP_PASSWORD must be set in environment variables.")
             return False
 
         try:
             # Create message
-            from email.mime.text import MIMEText
-            import base64
+            msg = MIMEMultipart()
+            msg['From'] = gmail_email
+            msg['To'] = to
+            msg['Subject'] = subject
 
-            message = MIMEText(body)
-            message['to'] = to
-            message['subject'] = subject
+            # Add body to email
+            msg.attach(MIMEText(body, 'plain'))
 
-            raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode('utf-8')
+            # Create SMTP session
+            server = smtplib.SMTP('smtp.gmail.com', 587)  # Use TLS port
+            server.starttls()  # Enable security
+            server.login(gmail_email, gmail_app_password)
 
-            # Send the message
-            sent_message = service.users().messages().send(
-                userId='me',
-                body={'raw': raw_message}
-            ).execute()
+            # Send email
+            text = msg.as_string()
+            server.sendmail(gmail_email, to, text)
+            server.quit()
 
-            print(f"Message sent successfully with ID: {sent_message['id']}")
+            print(f"Message sent successfully to: {to}")
             return True
 
         except Exception as e:
-            print(f"Error sending email via Gmail API: {e}")
+            print(f"Error sending email via SMTP: {e}")
             return False
 
     def process_all_pending_emails(self) -> int:

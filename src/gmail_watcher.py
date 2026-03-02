@@ -1,8 +1,10 @@
 """
 Gmail watcher for the Personal AI Employee system.
-Monitors Gmail for unread emails and saves them as .md files in Needs_Action folder.
+Monitors Gmail for unread emails using IMAP and saves them as .md files in Needs_Action folder.
 """
 import base64
+import email
+import imaplib
 import json
 import os
 import time
@@ -16,14 +18,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-try:
-    from google.auth.exceptions import RefreshError
-    from googleapiclient.errors import HttpError
-    from gmail_auth import get_authenticated_service
-except ImportError as e:
-    print(f"Error importing Gmail dependencies: {e}")
-    print("Please install required packages: pip install google-api-python-client google-auth-oauthlib")
-
 
 class GmailWatcher:
     """Gmail watcher implementation for the Personal AI Employee."""
@@ -36,87 +30,145 @@ class GmailWatcher:
         # Rate limiting: max 10 emails processed per run
         self.max_emails_per_run = 10
 
+        # Get Gmail credentials from environment
+        self.gmail_email = os.getenv('GMAIL_EMAIL')
+        self.gmail_app_password = os.getenv('GMAIL_APP_PASSWORD')
+
+        if not self.gmail_email or not self.gmail_app_password:
+            print("Error: GMAIL_EMAIL and GMAIL_APP_PASSWORD must be set in environment variables.")
+            print("Please set these in your .env file.")
+
         # Create directories if they don't exist
         self.needs_action_path.mkdir(exist_ok=True)
         self.logs_path.mkdir(exist_ok=True)
 
+    def connect_to_imap(self) -> Optional[imaplib.IMAP4_SSL]:
+        """
+        Connect to Gmail IMAP server.
+
+        Returns:
+            IMAP4_SSL connection object if successful, None otherwise
+        """
+        try:
+            # Connect to Gmail IMAP server
+            mail = imaplib.IMAP4_SSL('imap.gmail.com')
+
+            # Login using email and app password
+            mail.login(self.gmail_email, self.gmail_app_password)
+
+            # Select the inbox
+            mail.select('inbox')
+
+            return mail
+        except Exception as e:
+            print(f"Error connecting to Gmail IMAP: {e}")
+            return None
+
     def check_unread_emails(self) -> List[Dict]:
         """
-        Check for unread emails in Gmail.
+        Check for unread emails in Gmail using IMAP.
 
         Returns:
             List of email dictionaries with id, sender, subject, date, snippet
         """
-        service = get_authenticated_service()
-        if not service:
-            print("Error: Could not authenticate with Gmail API")
+        mail = self.connect_to_imap()
+        if not mail:
+            print("Error: Could not connect to Gmail IMAP")
             return []
 
         try:
-            # Query for unread emails
-            results = service.users().messages().list(
-                userId='me',
-                q='is:unread',
-                maxResults=self.max_emails_per_run
-            ).execute()
+            # Search for unread emails
+            status, messages = mail.search(None, 'UNSEEN')
 
-            messages = results.get('messages', [])
+            if status != 'OK':
+                print("Error searching for emails")
+                mail.logout()
+                return []
+
+            # Get email IDs
+            email_ids = messages[0].split()
+
+            # Limit to max emails per run
+            email_ids = email_ids[:self.max_emails_per_run]
+
             emails = []
 
-            for message in messages:
-                msg = service.users().messages().get(userId='me', id=message['id']).execute()
+            for email_id in email_ids:
+                # Fetch the email
+                status, msg_data = mail.fetch(email_id, '(RFC822)')
 
-                email_data = self._extract_email_data(msg)
-                if email_data:
-                    emails.append(email_data)
+                if status != 'OK':
+                    continue
+
+                # Parse the email
+                for response_part in msg_data:
+                    if isinstance(response_part, tuple):
+                        msg = email.message_from_bytes(response_part[1])
+
+                        email_data = self._extract_email_data_imap(msg, email_id.decode())
+                        if email_data:
+                            emails.append(email_data)
+
+            # Logout from IMAP
+            mail.logout()
 
             return emails
 
-        except HttpError as error:
-            print(f"An error occurred while fetching emails: {error}")
-            return []
-        except RefreshError as error:
-            print(f"Token refresh error: {error}")
+        except Exception as e:
+            print(f"An error occurred while fetching emails: {e}")
+            try:
+                mail.logout()
+            except:
+                pass
             return []
 
-    def _extract_email_data(self, message: Dict) -> Optional[Dict]:
+    def _extract_email_data_imap(self, msg: email.message.EmailMessage, email_id: str) -> Optional[Dict]:
         """
-        Extract relevant data from a Gmail message.
+        Extract relevant data from an IMAP email message.
 
         Args:
-            message: Raw Gmail message data
+            msg: Email message object from IMAP
+            email_id: The email ID from IMAP
 
         Returns:
             Dictionary with extracted email data, or None if extraction fails
         """
         try:
-            headers = message['payload']['headers']
-
             # Extract email components
-            sender = next((header['value'] for header in headers if header['name'].lower() == 'from'), 'Unknown')
-            subject = next((header['value'] for header in headers if header['name'].lower() == 'subject'), 'No Subject')
+            sender = str(msg.get('From', 'Unknown'))
+            subject = str(msg.get('Subject', 'No Subject'))
 
             # Get date
-            date_header = next((header['value'] for header in headers if header['name'].lower() == 'date'), '')
+            date_received = str(msg.get('Date', ''))
 
             # Get body snippet
-            body_snippet = message.get('snippet', '')[:500]  # First 500 chars
-
-            # Get message ID
-            message_id = message['id']
+            body_snippet = ""
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == "text/plain":
+                        body = part.get_payload(decode=True)
+                        if body:
+                            body = body.decode('utf-8', errors='ignore')
+                            body_snippet = body[:500]  # First 500 chars
+                            break
+            else:
+                body = msg.get_payload(decode=True)
+                if body:
+                    body = body.decode('utf-8', errors='ignore')
+                    body_snippet = body[:500]  # First 500 chars
 
             # Determine importance (basic implementation)
             importance_level = self._determine_importance(sender, subject, body_snippet)
 
             return {
-                'id': message_id,
+                'id': email_id,
                 'sender': sender,
                 'subject': subject,
-                'date_received': date_header,
+                'date_received': date_received,
                 'body_snippet': body_snippet,
                 'status': 'needs_action',
                 'importance_level': importance_level,
-                'raw_data': message
+                'raw_data': str(msg)[:1000]  # First 1000 chars of raw message
             }
         except Exception as e:
             print(f"Error extracting email data: {e}")
@@ -213,7 +265,7 @@ Status: {email['status']}
 
     def mark_emails_as_read(self, email_ids: List[str]) -> int:
         """
-        Mark emails as read in Gmail.
+        Mark emails as read in Gmail using IMAP.
 
         Args:
             email_ids: List of email IDs to mark as read
@@ -221,27 +273,32 @@ Status: {email['status']}
         Returns:
             Number of emails successfully marked as read
         """
-        service = get_authenticated_service()
-        if not service:
-            print("Error: Could not authenticate with Gmail API")
+        mail = self.connect_to_imap()
+        if not mail:
+            print("Error: Could not connect to Gmail IMAP")
             return 0
 
         marked_count = 0
 
         for email_id in email_ids:
             try:
-                # Remove the UNREAD label
-                service.users().messages().modify(
-                    userId='me',
-                    id=email_id,
-                    body={'removeLabelIds': ['UNREAD']}
-                ).execute()
+                # Mark email as read using IMAP
+                result = mail.store(email_id, '+FLAGS', '\\Seen')
 
-                marked_count += 1
-                print(f"Marked email as read: {email_id}")
+                if result[0] == 'OK':
+                    marked_count += 1
+                    print(f"Marked email as read: {email_id}")
+                else:
+                    print(f"Failed to mark email as read: {email_id}")
 
             except Exception as e:
                 print(f"Error marking email {email_id} as read: {e}")
+
+        # Logout from IMAP
+        try:
+            mail.logout()
+        except:
+            pass
 
         return marked_count
 

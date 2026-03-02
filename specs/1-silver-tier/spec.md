@@ -34,12 +34,12 @@ As a user, I want to maintain full control over external communications by revie
 ## Functional Requirements
 
 ### FR1: Gmail Watcher
-- The system SHALL monitor Gmail for all unread emails using the Gmail API
+- The system SHALL monitor Gmail for all unread emails using IMAP
 - The system SHALL process all unread emails and later categorize by importance level
 - The system SHALL save each email as a .md file in the Needs_Action folder
 - The email file SHALL include: sender, subject, date, and email body snippet
 - The system SHALL mark emails as read after processing them
-- The system SHALL use OAuth2 for secure Gmail API access
+- The system SHALL use Gmail App Password for secure IMAP access
 
 ### FR2: Email Reply Drafting
 - The system SHALL draft email replies using Gemini AI based on the original email content
@@ -51,8 +51,8 @@ As a user, I want to maintain full control over external communications by revie
 - The system SHALL generate business posts using Gemini AI with configurable frequency (daily, weekly, monthly) with weekly as default
 - The system SHALL generate posts based on trending topics in the user's industry
 - The system SHALL save post drafts to the Pending_Approval folder
-- The system SHALL post to LinkedIn only after human approval
-- The system SHALL use LinkedIn API for posting
+- The system SHALL save LinkedIn posts as draft files for manual posting after human approval
+- The system SHALL NOT post directly to LinkedIn automatically (user must manually post)
 
 ### FR4: Human-in-the-Loop Workflow
 - The system SHALL monitor the Approved folder for approved files
@@ -115,7 +115,7 @@ As a user, I want to maintain full control over external communications by revie
 
 ## Assumptions
 
-- User has Gmail account with appropriate API access configured
+- User has Gmail account with IMAP access enabled and App Password configured
 - User has LinkedIn account with appropriate API access configured
 - User will regularly review and approve content in the Pending_Approval folder
 - User has reliable internet connection for API communications
@@ -141,7 +141,7 @@ As a user, I want to maintain full control over external communications by revie
 
 ## Dependencies
 
-- Gmail API access with OAuth2 configuration
+- Gmail IMAP access with App Password configuration
 - LinkedIn API access with appropriate permissions
 - Existing vault structure with Needs_Action, Pending_Approval, Approved, and Done folders
 - Existing dashboard system for status reporting

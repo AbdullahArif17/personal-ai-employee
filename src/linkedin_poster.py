@@ -15,11 +15,7 @@ from google import genai
 # Load environment variables
 load_dotenv()
 
-try:
-    from linkedin_auth import get_authenticated_headers
-except ImportError as e:
-    print(f"Error importing LinkedIn auth: {e}")
-    print("Please make sure linkedin_auth.py is available")
+# Note: Using file-based approach instead of LinkedIn API, so no need for LinkedIn auth import
 
 
 class LinkedInPoster:
@@ -28,6 +24,7 @@ class LinkedInPoster:
     def __init__(self, vault_path: str = "./AI_Employee_Vault"):
         self.vault_path = Path(vault_path)
         self.pending_approval_path = self.vault_path / "Pending_Approval"
+        self.done_path = self.vault_path / "Done"  # Added this
         self.logs_path = self.vault_path / "Logs"
 
         # Rate limiting: max 3 posts per day
@@ -43,6 +40,7 @@ class LinkedInPoster:
 
         # Create directories if they don't exist
         self.pending_approval_path.mkdir(exist_ok=True)
+        self.done_path.mkdir(exist_ok=True)  # Added this
         self.logs_path.mkdir(exist_ok=True)
 
     def generate_post_content(self, topic: Optional[str] = None) -> str:
@@ -174,77 +172,37 @@ Review this post and move to Approved folder to publish to LinkedIn.
             print("Error: Could not authenticate with LinkedIn API")
             return False
 
-        # Prepare the post payload
-        post_payload = {
-            "author": f"urn:li:person:{self._get_current_user_id()}",
-            "lifecycleState": "PUBLISHED",
-            "specificContent": {
-                "com.linkedin.ugc.ShareContent": {
-                    "shareCommentary": {
-                        "text": content
-                    },
-                    "shareMediaCategory": "NONE"
-                }
-            },
-            "visibility": {
-                "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
-            }
-        }
+        # For the IMAP approach, we're not posting directly to LinkedIn via API
+        # Instead, we're saving the post as a draft file that the user can manually post
 
-        try:
-            response = requests.post(
-                'https://api.linkedin.com/v2/ugcPosts',
-                headers=headers,
-                json=post_payload,
-                timeout=30
-            )
+        # Create a filename for the LinkedIn post draft
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"LINKEDIN_READY_TO_POST_{timestamp}.txt"
+        filepath = self.done_path / filename
 
-            if response.status_code == 201:
-                print("Successfully posted to LinkedIn")
-                self._log_action("LINKEDIN_POSTED", "Successfully posted to LinkedIn")
-                return True
-            else:
-                print(f"Error posting to LinkedIn: {response.status_code} - {response.text}")
-                self._log_action("POST_FAILED", f"Failed to post to LinkedIn: {response.status_code} - {response.text}")
-                return False
+        # Handle filename conflicts
+        counter = 1
+        original_filepath = filepath
+        while filepath.exists():
+            filepath = self.done_path / f"LINKEDIN_READY_TO_POST_{timestamp}_{counter}.txt"
+            counter += 1
 
-        except Exception as e:
-            print(f"Error posting to LinkedIn: {e}")
-            self._log_action("POST_ERROR", f"Error posting to LinkedIn: {e}")
-            return False
+        # Save the post content to the file
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(f"LinkedIn Post - Ready to Publish\n")
+            f.write(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"===============================\n\n")
+            f.write(content)
 
-    def _get_current_user_id(self) -> Optional[str]:
-        """
-        Get the current user's LinkedIn ID.
-
-        Returns:
-            User ID string if successful, None otherwise
-        """
-        headers = get_authenticated_headers()
-        if not headers:
-            return None
-
-        try:
-            response = requests.get(
-                'https://api.linkedin.com/v2/me',
-                headers=headers,
-                timeout=10
-            )
-
-            if response.status_code == 200:
-                data = response.json()
-                return data.get('id')
-            else:
-                print(f"Error getting user ID: {response.status_code} - {response.text}")
-                return None
-
-        except Exception as e:
-            print(f"Error getting user ID: {e}")
-            return None
+        print(f"LinkedIn post saved as draft: {filepath.name}")
+        print("Please manually copy and paste this content to LinkedIn to publish.")
+        self._log_action("LINKEDIN_SAVED_AS_DRAFT", f"LinkedIn post saved as draft: {filepath.name}")
+        return True
 
     def process_approved_post(self, file_path: Path) -> bool:
         """
-        Process an approved LinkedIn post file and publish it.
+        Process an approved LinkedIn post file and handle it appropriately.
+        For the IMAP approach, this just acknowledges the approval.
 
         Args:
             file_path: Path to the approved post file
@@ -256,31 +214,12 @@ Review this post and move to Approved folder to publish to LinkedIn.
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            # Extract the actual post content (everything after the details section)
-            lines = content.split('\n')
-            post_content = ""
-            found_content = False
+            print(f"LinkedIn post approved: {file_path.name}")
+            print("This post has been approved and is ready for manual posting to LinkedIn.")
 
-            for line in lines:
-                if line.startswith('## Content'):
-                    found_content = True
-                    continue
-                elif line.startswith('## Details') or line.startswith('# LinkedIn Post Draft'):
-                    continue
-                elif found_content and not line.startswith('#'):
-                    post_content += line + '\n'
-                elif line.startswith('#'):
-                    break
-
-            post_content = post_content.strip()
-
-            if not post_content:
-                print(f"No post content found in file: {file_path.name}")
-                return False
-
-            # Post to LinkedIn
-            success = self.post_to_linkedin(post_content)
-            return success
+            # In the file-based approach, the user manually copies the content to LinkedIn
+            self._log_action("LINKEDIN_APPROVED", f"LinkedIn post approved for manual posting: {file_path.name}")
+            return True
 
         except Exception as e:
             print(f"Error processing approved post {file_path.name}: {e}")

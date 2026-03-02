@@ -21,7 +21,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo Generating LinkedIn post drafts...
+echo Generating LinkedIn post drafts (file-based - manual posting)...
 python src/linkedin_poster.py
 if %ERRORLEVEL% NEQ 0 (
     echo Warning: LinkedIn poster failed

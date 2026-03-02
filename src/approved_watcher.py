@@ -100,6 +100,118 @@ class ApprovedFileHandler(FileSystemEventHandler):
         # Default to email if uncertain
         return "email"
 
+    def _extract_email_details(self, content: str) -> tuple:
+        """
+        Extract recipient, subject, and body from the email content.
+
+        Args:
+            content: Content of the email file
+
+        Returns:
+            Tuple of (recipient, subject, body) or (None, None, None) if extraction fails
+        """
+        import re
+
+        # Extract recipient from the original email (look for sender in the original email file)
+        lines = content.split('\n')
+        recipient = None
+
+        # Look for the original email header information
+        for line in lines:
+            if '**From:**' in line:
+                # Extract email address from the original email
+                email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', line)
+                if email_match:
+                    recipient = email_match.group()
+                    break
+            elif '## Original Email' in line:
+                # Look for the original email file name and extract recipient from it
+                # This is a simplified approach
+                continue
+
+        # Extract subject if it's in the content
+        subject = "Re: Approved Reply"
+
+        # Extract the body content (the actual reply)
+        body_started = False
+        body_content = []
+
+        for line in lines:
+            if '## Reply Draft' in line:
+                body_started = True
+                continue
+            elif '## Details' in line:
+                body_started = False
+                continue
+            elif '## Action Required' in line:
+                break
+
+            if body_started:
+                body_content.append(line)
+
+        body = '\n'.join(body_content).strip()
+
+        if not body:
+            # If we couldn't extract from the structured format, use the whole content
+            body = content[:1000]  # First 1000 characters as fallback
+
+        return recipient, subject, body
+
+    def _send_email_via_smtp(self, to: str, subject: str, body: str) -> bool:
+        """
+        Send an email via SMTP.
+
+        Args:
+            to: Recipient email address
+            subject: Email subject
+            body: Email body
+
+        Returns:
+            True if successful, False otherwise
+        """
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+        from dotenv import load_dotenv
+        import os
+
+        load_dotenv()
+
+        # Get Gmail credentials from environment
+        gmail_email = os.getenv('GMAIL_EMAIL')
+        gmail_app_password = os.getenv('GMAIL_APP_PASSWORD')
+
+        if not gmail_email or not gmail_app_password:
+            print("Error: GMAIL_EMAIL and GMAIL_APP_PASSWORD must be set in environment variables.")
+            return False
+
+        try:
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = gmail_email
+            msg['To'] = to
+            msg['Subject'] = subject
+
+            # Add body to email
+            msg.attach(MIMEText(body, 'plain'))
+
+            # Create SMTP session
+            server = smtplib.SMTP('smtp.gmail.com', 587)  # Use TLS port
+            server.starttls()  # Enable security
+            server.login(gmail_email, gmail_app_password)
+
+            # Send email
+            text = msg.as_string()
+            server.sendmail(gmail_email, to, text)
+            server.quit()
+
+            print(f"Message sent successfully to: {to}")
+            return True
+
+        except Exception as e:
+            print(f"Error sending email via SMTP: {e}")
+            return False
+
     def _execute_email_action(self, file_path: Path):
         """Execute an approved email action."""
         if self.dry_run:
@@ -107,10 +219,34 @@ class ApprovedFileHandler(FileSystemEventHandler):
             self._log_action("EMAIL_DRY_RUN", f"Would send email based on: {file_path.name}")
             return
 
-        # In a real implementation, this would send the email via Gmail API
-        # For now, just log the action
-        self._log_action("EMAIL_SENT", f"Sent email based on: {file_path.name}")
-        print(f"Email sent based on: {file_path.name}")
+        try:
+            # Extract email details from the file
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Extract recipient, subject, and body from the content
+            recipient, subject, body = self._extract_email_details(content)
+
+            if not all([recipient, subject, body]):
+                error_msg = f"Could not extract email details from: {file_path.name}"
+                print(error_msg)
+                self._log_action("EMAIL_SEND_FAILED", error_msg)
+                return
+
+            # Send the email via SMTP
+            success = self._send_email_via_smtp(recipient, subject, body)
+
+            if success:
+                self._log_action("EMAIL_SENT", f"Sent email to {recipient} based on: {file_path.name}")
+                print(f"Email sent to {recipient} based on: {file_path.name}")
+            else:
+                self._log_action("EMAIL_SEND_FAILED", f"Failed to send email based on: {file_path.name}")
+                print(f"Failed to send email based on: {file_path.name}")
+
+        except Exception as e:
+            error_msg = f"Error executing email action from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("EMAIL_EXECUTION_ERROR", error_msg)
 
     def _execute_linkedin_action(self, file_path: Path):
         """Execute an approved LinkedIn post action."""
@@ -119,10 +255,13 @@ class ApprovedFileHandler(FileSystemEventHandler):
             self._log_action("LINKEDIN_DRY_RUN", f"Would post to LinkedIn based on: {file_path.name}")
             return
 
-        # In a real implementation, this would post to LinkedIn via LinkedIn API
-        # For now, just log the action
-        self._log_action("LINKEDIN_POSTED", f"Posted to LinkedIn: {file_path.name}")
-        print(f"Posted to LinkedIn: {file_path.name}")
+        # For the IMAP approach, we're not actually posting to LinkedIn via API
+        # Instead, we're just noting that the post has been approved for manual posting
+        self._log_action("LINKEDIN_APPROVED", f"LinkedIn post approved for manual posting: {file_path.name}")
+        print(f"LinkedIn post approved for manual posting: {file_path.name}")
+
+        # In a real implementation, we might save the post content to a separate file
+        # or database to indicate it's ready for manual posting to LinkedIn
 
     def _move_to_done(self, file_path: Path):
         """Move the processed file to the Done folder."""
