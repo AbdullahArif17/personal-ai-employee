@@ -36,7 +36,7 @@ class LinkedInPoster:
             raise ValueError("GEMINI_API_KEY environment variable is not set in .env file")
 
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.model = genai.GenerativeModel('gemini-3-flash')
 
         # Create directories if they don't exist
         self.pending_approval_path.mkdir(exist_ok=True)
