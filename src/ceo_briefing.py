@@ -152,7 +152,7 @@ Format the response in Markdown with clear sections and professional language su
 
         try:
             response = self.client.models.generate_content(
-                model="gemini-3-flash-preview",
+                model="gemma-3-27b-it",
                 contents=prompt
             )
             return response.text if response.text else "No content generated"

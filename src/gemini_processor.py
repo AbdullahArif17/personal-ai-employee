@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
 
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 from dashboard_updater import DashboardUpdater
@@ -34,10 +34,7 @@ class GeminiProcessor:
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
 
-        genai.configure(api_key=api_key)
-
-        # Set up the model
-        self.model = genai.GenerativeModel('gemini-3-flash')
+        self.client = genai.Client(api_key=api_key)
 
         # Set up dashboard updater
         self.dashboard_updater = DashboardUpdater(vault_path)
@@ -79,7 +76,10 @@ class GeminiProcessor:
             prompt = self._create_prompt(content, file_path.name)
 
             # Call the Gemini API
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model="gemma-3-27b-it",
+                contents=prompt
+            )
 
             # Get the processed content
             processed_content = response.text if response.text else "No response generated"

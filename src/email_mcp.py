@@ -36,8 +36,7 @@ class EmailMCP:
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set in .env file")
 
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.client = genai.Client(api_key=api_key)
 
         # Create directories if they don't exist
         self.needs_action_path.mkdir(exist_ok=True)
@@ -99,7 +98,10 @@ Generate a draft reply that is:
 """
 
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model="gemma-3-27b-it",
+                contents=prompt
+            )
             return response.text if response.text else None
         except Exception as e:
             print(f"Error generating reply draft with Gemini: {e}")

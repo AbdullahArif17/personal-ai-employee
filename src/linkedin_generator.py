@@ -92,7 +92,7 @@ Focus on providing value to the reader and encouraging engagement.
 
         try:
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemma-3-27b-it",
                 contents=prompt
             )
             return response.text if response.text else "No content generated"

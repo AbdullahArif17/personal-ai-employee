@@ -35,8 +35,7 @@ class LinkedInPoster:
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set in .env file")
 
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-3-flash')
+        self.client = genai.Client(api_key=api_key)
 
         # Create directories if they don't exist
         self.pending_approval_path.mkdir(exist_ok=True)
@@ -65,7 +64,10 @@ class LinkedInPoster:
             Keep it under 500 characters and focus on business insights."""
 
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model="gemma-3-27b-it",
+                contents=prompt
+            )
             return response.text if response.text else "No content generated"
         except Exception as e:
             print(f"Error generating post with Gemini: {e}")

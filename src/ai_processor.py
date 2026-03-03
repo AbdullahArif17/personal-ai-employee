@@ -90,7 +90,7 @@ Please process this task according to the guidelines above. Provide a clear, act
 
             # Call the Gemini API
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemma-3-27b-it",
                 contents=prompt
             )
 
