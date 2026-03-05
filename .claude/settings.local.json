@@ -12,7 +12,9 @@
       "Bash(python:*)",
       "Bash(sudo apt-get:*)",
       "Bash(git fetch:*)",
-      "Bash(.specify/scripts/powershell/setup-plan.ps1:*)"
+      "Bash(.specify/scripts/powershell/setup-plan.ps1:*)",
+      "Bash(.specify/scripts/powershell/create-new-feature.ps1:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

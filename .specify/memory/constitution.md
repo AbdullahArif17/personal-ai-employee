@@ -1,8 +1,8 @@
 <!--
 Sync Impact Report:
-- Version change: 1.0.0 → 1.1.0
-- Modified principles: Added IX, X, XI, XII, XIII, XIV for Silver tier rules
-- Added sections: Silver tier specific principles
+- Version change: 1.1.0 → 1.2.0
+- Modified principles: Added XV, XVI, XVII, XVIII, XIX, XX, XXI for Gold tier rules
+- Added sections: Gold tier specific principles
 - Templates requiring updates:
   - .specify/templates/plan-template.md: ⚠ pending
   - .specify/templates/spec-template.md: ⚠ pending
@@ -56,6 +56,27 @@ All new watchers follow base_watcher.py pattern. Any new filesystem watchers mus
 ### XIV. RATE LIMITING (Silver tier)
 Rate limiting: max 10 emails processed per run, max 3 LinkedIn posts per day. The system must enforce these limits to prevent spam and API abuse.
 
+### XV. ODOO ACCOUNTING (Gold tier)
+Odoo accounting integration: all financial entries require human approval before posting. No financial transactions or entries may be automatically posted without explicit human approval in the system.
+
+### XVI. SOCIAL MEDIA DRAFTS (Gold tier)
+Social media automation for Twitter, Facebook, and Instagram: AI may draft content only, never auto-posts. All social media content must be reviewed and manually approved before publication.
+
+### XVII. RALPH WIGGUM LOOP (Gold tier)
+Ralph Wiggum loop protection: maximum 10 iterations allowed, with each iteration logged. The system must always log each iteration to prevent infinite loops.
+
+### XVIII. DRY-RUN MODE (Gold tier)
+All Gold tier features must have dry-run mode enabled by default. No Gold tier functionality may execute without the ability to run in a simulation mode that shows what would happen without taking actual actions.
+
+### XIX. EXTERNAL API CREDENTIALS (Gold tier)
+External API credentials for Twitter, Facebook, and Odoo must be stored in .env file only, never in vault or committed to version control. These credentials must never be exposed in the Obsidian vault or committed to any repository.
+
+### XX. WEEKLY BUSINESS AUDIT (Gold tier)
+Weekly business audit runs automatically every Sunday night. The system must perform comprehensive checks and generate audit reports without human intervention.
+
+### XXI. DOUBLE APPROVAL FOR FINANCIAL ACTIONS (Gold tier)
+Any action touching money requires double human approval. Financial transactions, payments, or monetary transfers must receive approval from two separate human reviewers before execution.
+
 ## Additional Constraints
 
 ### Technology Stack
@@ -86,6 +107,15 @@ Rate limiting: max 10 emails processed per run, max 3 LinkedIn posts per day. Th
 - Rate limiting enforced: max 10 emails per run, max 3 LinkedIn posts per day
 - All new watchers must follow base_watcher.py inheritance pattern
 
+### Gold Tier Extensions
+- Odoo accounting requires human approval before posting any financial entries
+- Social media (Twitter, Facebook, Instagram) AI drafts only, never auto-posts
+- Ralph Wiggum loop protection: max 10 iterations with logging
+- All Gold tier features must have dry-run mode enabled
+- External API credentials (Twitter, Facebook, Odoo) stored in .env only
+- Weekly business audit runs automatically every Sunday night
+- Double human approval required for any action touching money
+
 ## Development Workflow
 
 ### Code Review Process
@@ -106,4 +136,4 @@ Rate limiting: max 10 emails processed per run, max 3 LinkedIn posts per day. Th
 
 This constitution supersedes all other practices in the Personal AI Employee project. Any amendments to these principles must be documented with justification and approved by the project maintainer. All implementations must comply with these principles, and any deviation must be explicitly documented and justified. Silver tier extensions must maintain the same security and human-in-the-loop standards as Bronze tier.
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-20 | **Last Amended**: 2026-03-02
+**Version**: 1.2.0 | **Ratified**: 2026-02-20 | **Last Amended**: 2026-03-02
