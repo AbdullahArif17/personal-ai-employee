@@ -1,9 +1,7 @@
-"""
-LinkedIn Generator for the Personal AI Employee system.
-Generates professional LinkedIn posts using Gemini AI based on business context.
-"""
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
+
 import json
-import os
 from datetime import datetime
 from pathlib import Path
 
@@ -24,9 +22,9 @@ class LinkedInGenerator:
         self.company_handbook_path = self.vault_path / "Company_Handbook.md"
 
         # Configure Gemini API
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not set in .env file")
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY environment variable is not set in .env file")
 
         self.client = genai.Client(api_key=api_key)
 
@@ -45,8 +43,8 @@ class LinkedInGenerator:
             with open(self.company_handbook_path, 'r', encoding='utf-8') as f:
                 return f.read()
         except FileNotFoundError:
-            print(f"⚠️  Company handbook not found at: {self.company_handbook_path}")
-            print("Using default business context...")
+            print(f"WARNING: Company handbook not found at: {self.company_handbook_path}")
+            print("INFO: Using default business context...")
             return """
 # Company Handbook
 
@@ -63,7 +61,7 @@ Our company specializes in innovative technology solutions, helping businesses g
 Business leaders, entrepreneurs, and professionals interested in technology trends and business growth strategies.
 """
         except Exception as e:
-            print(f"⚠️  Error reading company handbook: {e}")
+            print(f"WARNING: Error reading company handbook: {e}")
             return "Default business context for generating LinkedIn posts."
 
     def generate_linkedin_post(self) -> str:
@@ -92,12 +90,12 @@ Focus on providing value to the reader and encouraging engagement.
 
         try:
             response = self.client.models.generate_content(
-                model="gemma-3-27b-it",
+                model="gemini-3.1-flash-lite-preview",
                 contents=prompt
             )
             return response.text if response.text else "No content generated"
         except Exception as e:
-            print(f"❌ Error generating LinkedIn post with Gemini: {e}")
+            print(f"ERROR: Error generating LinkedIn post with Gemini: {e}")
             return "Sample LinkedIn post content - failed to generate with AI."
 
     def save_post_draft(self, content: str) -> str:
@@ -135,7 +133,7 @@ status: pending_approval
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(yaml_header)
 
-        print(f"📄 Saved LinkedIn post draft: {filepath.name}")
+        print(f"INFO: Saved LinkedIn post draft: {filepath.name}")
 
         # Log the action
         self._log_action("LINKEDIN_DRAFT_CREATED", f"Created LinkedIn post draft: {filepath.name}")
@@ -149,7 +147,7 @@ status: pending_approval
         Returns:
             Filename of the saved draft
         """
-        print("🔄 Generating LinkedIn post...")
+        print("INFO: Generating LinkedIn post...")
 
         # Generate the post content
         content = self.generate_linkedin_post()
@@ -164,8 +162,8 @@ status: pending_approval
         # Save the post draft
         filename = self.save_post_draft(content)
 
-        print(f"✅ LinkedIn post draft saved to: {self.pending_approval_path / filename}")
-        print("📋 Remember: The post requires human approval before posting to LinkedIn.")
+        print(f"SUCCESS: LinkedIn post draft saved to: {self.pending_approval_path / filename}")
+        print("INFO: Remember: The post requires human approval before posting to LinkedIn.")
 
         return filename
 
@@ -205,8 +203,8 @@ status: pending_approval
 
 def main():
     """Main function to run the LinkedIn generator."""
-    print("🚀 Starting LinkedIn Post Generator")
-    print("📋 This will generate a LinkedIn post draft for human approval")
+    print("STARTING: LinkedIn Post Generator")
+    print("INFO: This will generate a LinkedIn post draft for human approval")
     print("-" * 60)
 
     vault_path = os.getenv('VAULT_PATH', 'D:/giaic/personal-ai-employee/AI_Employee_Vault')
@@ -215,7 +213,7 @@ def main():
 
     # Generate and save a LinkedIn post
     filename = generator.generate_and_save_post()
-    print(f"🎯 LinkedIn post generation completed: {filename}")
+    print(f"SUCCESS: LinkedIn post generation completed: {filename}")
 
 
 if __name__ == "__main__":

@@ -63,6 +63,14 @@ class ApprovedFileHandler(FileSystemEventHandler):
                 self._execute_email_action(file_path_obj)
             elif action_type == "linkedin_post":
                 self._execute_linkedin_action(file_path_obj)
+            elif action_type == "twitter_post":
+                self._execute_twitter_action(file_path_obj)
+            elif action_type == "facebook_post":
+                self._execute_facebook_action(file_path_obj)
+            elif action_type == "instagram_post":
+                self._execute_instagram_action(file_path_obj)
+            elif action_type == "odoo_invoice":
+                self._execute_odoo_action(file_path_obj)
             else:
                 self._log_action("UNKNOWN_ACTION", f"Unknown action type for file: {file_path_obj.name}")
                 return
@@ -81,18 +89,34 @@ class ApprovedFileHandler(FileSystemEventHandler):
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read().lower()
 
-            # Check content for indicators
+            # Check content for indicators (Gold tier additions)
             if "email" in content or "reply" in content or "gmail" in content:
                 return "email"
             elif "linkedin" in content or "post" in content or "connection" in content:
                 return "linkedin_post"
+            elif "twitter" in content or "tweet" in content:
+                return "twitter_post"
+            elif "facebook" in content or "fb_post" in content:
+                return "facebook_post"
+            elif "instagram" in content or "ig_post" in content or "insta_post" in content:
+                return "instagram_post"
+            elif "invoice" in content or "odoo" in content or "billing" in content:
+                return "odoo_invoice"
 
-            # Check filename
+            # Check filename (Gold tier additions)
             name = file_path.name.lower()
             if "email" in name or "reply" in name:
                 return "email"
             elif "linkedin" in name or "post" in name:
                 return "linkedin_post"
+            elif "twitter" in name or "tweet" in name:
+                return "twitter_post"
+            elif "facebook" in name or "fb_" in name:
+                return "facebook_post"
+            elif "instagram" in name or "ig_" in name or "insta_" in name:
+                return "instagram_post"
+            elif "invoice" in name or "odoo" in name or "billing" in name:
+                return "odoo_invoice"
 
         except Exception:
             pass
@@ -262,6 +286,298 @@ class ApprovedFileHandler(FileSystemEventHandler):
 
         # In a real implementation, we might save the post content to a separate file
         # or database to indicate it's ready for manual posting to LinkedIn
+
+    def _execute_twitter_action(self, file_path: Path):
+        """Execute an approved Twitter post action."""
+        if self.dry_run:
+            print(f"(DRY RUN) Would post to Twitter based on: {file_path.name}")
+            self._log_action("TWITTER_DRY_RUN", f"Would post to Twitter based on: {file_path.name}")
+            return
+
+        try:
+            # Read the content to post
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Extract the actual post content (skip any metadata)
+            lines = content.split('\n')
+            post_content = ""
+            for line in lines:
+                if not line.startswith('#') and not line.startswith('**') and line.strip():
+                    post_content += line + "\n"
+
+            post_content = post_content.strip()
+
+            # Validate content length (Twitter has 280 character limit)
+            if len(post_content) > 280:
+                post_content = post_content[:277] + "..."
+
+            # Import Twitter libraries
+            import tweepy
+            from .config import config
+
+            # Get Twitter credentials
+            api_key = config.twitter_api_key
+            api_secret = config.twitter_api_secret
+            access_token = config.twitter_access_token
+            access_token_secret = config.twitter_access_secret
+
+            if not all([api_key, api_secret, access_token, access_token_secret]):
+                error_msg = f"Missing Twitter API credentials for posting: {file_path.name}"
+                print(error_msg)
+                self._log_action("TWITTER_POST_FAILED", error_msg)
+                return
+
+            # Authenticate with Twitter API
+            client = tweepy.Client(
+                consumer_key=api_key,
+                consumer_secret=api_secret,
+                access_token=access_token,
+                access_token_secret=access_token_secret
+            )
+
+            # Post the tweet
+            response = client.create_tweet(text=post_content)
+
+            if response.data and 'id' in response.data:
+                success_msg = f"Successfully posted to Twitter: {file_path.name}"
+                print(success_msg)
+                self._log_action("TWITTER_POSTED", success_msg)
+            else:
+                error_msg = f"Failed to post to Twitter: {file_path.name}"
+                print(error_msg)
+                self._log_action("TWITTER_POST_FAILED", error_msg)
+
+        except Exception as e:
+            error_msg = f"Error executing Twitter action from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("TWITTER_EXECUTION_ERROR", error_msg)
+
+    def _execute_facebook_action(self, file_path: Path):
+        """Execute an approved Facebook post action."""
+        if self.dry_run:
+            print(f"(DRY RUN) Would post to Facebook based on: {file_path.name}")
+            self._log_action("FACEBOOK_DRY_RUN", f"Would post to Facebook based on: {file_path.name}")
+            return
+
+        try:
+            # Read the content to post
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Extract the actual post content (skip any metadata)
+            lines = content.split('\n')
+            post_content = ""
+            for line in lines:
+                if not line.startswith('#') and not line.startswith('**') and line.strip():
+                    post_content += line + "\n"
+
+            post_content = post_content.strip()
+
+            # Import Facebook libraries
+            import requests
+            from .config import config
+
+            # Get Facebook credentials
+            access_token = config.facebook_access_token
+            page_id = config.facebook_page_id
+
+            if not all([access_token, page_id]):
+                error_msg = f"Missing Facebook API credentials for posting: {file_path.name}"
+                print(error_msg)
+                self._log_action("FACEBOOK_POST_FAILED", error_msg)
+                return
+
+            # Prepare the post data
+            post_url = f"https://graph.facebook.com/v18.0/{page_id}/feed"
+            params = {
+                'message': post_content,
+                'access_token': access_token
+            }
+
+            # Make the POST request
+            response = requests.post(post_url, params=params)
+
+            if response.status_code == 200:
+                response_data = response.json()
+                post_id = response_data.get('id', 'unknown')
+                success_msg = f"Successfully posted to Facebook (ID: {post_id}): {file_path.name}"
+                print(success_msg)
+                self._log_action("FACEBOOK_POSTED", success_msg)
+            else:
+                error_msg = f"Failed to post to Facebook: {file_path.name}, Error: {response.text}"
+                print(error_msg)
+                self._log_action("FACEBOOK_POST_FAILED", error_msg)
+
+        except Exception as e:
+            error_msg = f"Error executing Facebook action from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("FACEBOOK_EXECUTION_ERROR", error_msg)
+
+    def _execute_instagram_action(self, file_path: Path):
+        """Execute an approved Instagram post action."""
+        if self.dry_run:
+            print(f"(DRY RUN) Would post to Instagram based on: {file_path.name}")
+            self._log_action("INSTAGRAM_DRY_RUN", f"Would post to Instagram based on: {file_path.name}")
+            return
+
+        try:
+            # Read the content to post
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Extract the actual post content (skip any metadata)
+            lines = content.split('\n')
+            post_content = ""
+            for line in lines:
+                if not line.startswith('#') and not line.startswith('**') and line.strip():
+                    post_content += line + "\n"
+
+            post_content = post_content.strip()
+
+            # Import Instagram libraries
+            import requests
+            from .config import config
+
+            # Get Instagram credentials
+            access_token = config.instagram_access_token
+            account_id = config.instagram_account_id
+
+            if not all([access_token, account_id]):
+                error_msg = f"Missing Instagram API credentials for posting: {file_path.name}"
+                print(error_msg)
+                self._log_action("INSTAGRAM_POST_FAILED", error_msg)
+                return
+
+            # Create the media object
+            creation_url = f"https://graph.facebook.com/v18.0/{account_id}/media"
+            creation_params = {
+                'caption': post_content,
+                'access_token': access_token
+            }
+
+            # For text-only posts, we can't use Instagram's media upload directly
+            # This is a simplified approach - real implementation would need image/media handling
+            response = requests.post(creation_url, params=creation_params)
+
+            if response.status_code == 200:
+                response_data = response.json()
+                container_id = response_data.get('id', '')
+
+                # Publish the media
+                publish_url = f"https://graph.facebook.com/v18.0/{account_id}/media_publish"
+                publish_params = {
+                    'creation_id': container_id,
+                    'access_token': access_token
+                }
+
+                publish_response = requests.post(publish_url, params=publish_params)
+
+                if publish_response.status_code == 200:
+                    publish_data = publish_response.json()
+                    post_id = publish_data.get('id', 'unknown')
+                    success_msg = f"Successfully posted to Instagram (ID: {post_id}): {file_path.name}"
+                    print(success_msg)
+                    self._log_action("INSTAGRAM_POSTED", success_msg)
+                else:
+                    error_msg = f"Failed to publish Instagram post: {file_path.name}, Error: {publish_response.text}"
+                    print(error_msg)
+                    self._log_action("INSTAGRAM_PUBLISH_FAILED", error_msg)
+            else:
+                error_msg = f"Failed to create Instagram media: {file_path.name}, Error: {response.text}"
+                print(error_msg)
+                self._log_action("INSTAGRAM_CREATION_FAILED", error_msg)
+
+        except Exception as e:
+            error_msg = f"Error executing Instagram action from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("INSTAGRAM_EXECUTION_ERROR", error_msg)
+
+    def _execute_odoo_action(self, file_path: Path):
+        """Execute an approved Odoo invoice creation action."""
+        if self.dry_run:
+            print(f"(DRY RUN) Would create invoice in Odoo based on: {file_path.name}")
+            self._log_action("ODOO_DRY_RUN", f"Would create invoice in Odoo based on: {file_path.name}")
+            return
+
+        try:
+            # Read the content to process
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Import Odoo libraries
+            from odoo_rpc import ODOO
+            from .config import config
+
+            # Get Odoo credentials
+            url = config.odoo_url
+            db = config.odoo_db
+            username = config.odoo_username
+            password = config.odoo_password
+
+            if not all([url, db, username, password]):
+                error_msg = f"Missing Odoo API credentials for invoice creation: {file_path.name}"
+                print(error_msg)
+                self._log_action("ODOO_INVOICE_FAILED", error_msg)
+                return
+
+            # Connect to Odoo
+            odoo = ODOO(url, port=80, database=db, user=username, password=password)
+
+            # Extract invoice details from content (simplified approach)
+            # In a real implementation, we'd parse the content more thoroughly
+            lines = content.split('\n')
+            partner_name = "Default Customer"  # Would extract from content in real impl
+            product_name = "Service"  # Would extract from content in real impl
+            quantity = 1  # Would extract from content in real impl
+            price_unit = 100.0  # Would extract from content in real impl
+
+            # Search for partner
+            partner_ids = odoo.res_partner.search([('name', '=', partner_name)])
+            if not partner_ids:
+                # Create partner if not found
+                partner_id = odoo.res_partner.create({
+                    'name': partner_name,
+                    'customer_rank': 1  # Mark as customer
+                })
+            else:
+                partner_id = partner_ids[0]
+
+            # Search for product
+            product_ids = odoo.product_product.search([('name', '=', product_name)])
+            if not product_ids:
+                # Create product if not found
+                product_id = odoo.product_product.create({
+                    'name': product_name,
+                    'type': 'service',  # Use 'service' for services
+                    'list_price': price_unit
+                })
+            else:
+                product_id = product_ids[0]
+
+            # Create invoice
+            invoice_id = odoo.account_move.create({
+                'partner_id': partner_id,
+                'move_type': 'out_invoice',  # 'out_invoice' for customer invoices
+                'invoice_line_ids': [(0, 0, {
+                    'product_id': product_id,
+                    'name': product_name,
+                    'quantity': quantity,
+                    'price_unit': price_unit,
+                })]
+            })
+
+            # Validate and post the invoice
+            odoo.account_move.action_post([invoice_id])
+
+            success_msg = f"Successfully created invoice in Odoo (ID: {invoice_id}): {file_path.name}"
+            print(success_msg)
+            self._log_action("ODOO_INVOICE_CREATED", success_msg)
+
+        except Exception as e:
+            error_msg = f"Error executing Odoo action from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("ODOO_EXECUTION_ERROR", error_msg)
 
     def _move_to_done(self, file_path: Path):
         """Move the processed file to the Done folder."""

@@ -29,6 +29,17 @@ The Personal AI Employee is a Bronze-tier automation system that:
    - **Rate Limiting**: Enforced limits (max 10 emails per run, max 3 LinkedIn posts per day)
    - **Secure Authentication**: Uses Gmail App Password for IMAP/SMTP access (no credit card required)
 
+3. **Gold Tier (Advanced Automation)**:
+   - **Ralph Wiggum Loop**: Autonomous task completion loop that monitors Needs_Action folder, processes tasks with AI, and retries up to 10 times before stopping
+   - **Twitter/X Integration**: AI-powered tweet generation using business context from Company_Handbook.md, with approval workflow and rate limiting (max 5 posts per day)
+   - **Facebook & Instagram Integration**: AI-powered post generation with platform-appropriate formatting, hashtags and emojis, with approval workflow and rate limiting (max 3 posts per day per platform)
+   - **Odoo Accounting Integration**: Connect to local Odoo Community instance via JSON-RPC API for invoice creation and financial reporting, with approval workflow and rate limiting (max 10 invoices per day)
+   - **Weekly Business Audit**: Automated weekly audit system that runs every Sunday night, aggregating data from Done files, Odoo financial data, and social media activity to generate comprehensive audit reports
+   - **Enhanced Rate Limiting**: Comprehensive rate limiting across all platforms to prevent API abuse
+   - **Advanced Approval Workflow**: Extended approval system supporting all Gold tier features
+   - **Performance Monitoring**: Built-in monitoring for all features with alerts for slow operations
+   - **Audit Trail Compliance**: Comprehensive logging for all actions to ensure compliance
+
 ## Prerequisites
 
 - Python 3.13+
@@ -251,11 +262,47 @@ personal-ai-employee/
     └── run_claude.sh
 ```
 
+## Testing
+
+### Gold Tier Feature Tests
+
+The Gold tier features include comprehensive test suites:
+
+1. **Unit Tests**: Located in `tests/test_gold_tier_features.py`
+   - Test individual components: Ralph Loop, Twitter poster, Social media poster, Odoo integration, Weekly audit
+   - Verify rate limiting functionality
+   - Test approval workflows
+   - Validate performance monitoring
+
+2. **End-to-End Tests**: Located in `tests/end_to_end_tests.py`
+   - Test complete user story flows
+   - Verify integration between components
+   - Validate approval workflows across features
+   - Test rate limiting enforcement
+
+To run the tests:
+
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run just the Gold tier feature tests
+python -m pytest tests/test_gold_tier_features.py
+
+# Run just the end-to-end tests
+python -m pytest tests/end_to_end_tests.py
+
+# Run with verbose output
+python -m pytest tests/ -v
+```
+
 ## Troubleshooting
 
 - Check the log files in `AI_Employee_Vault/Logs/` for error messages
 - Ensure Claude Code is properly configured and authenticated
 - Verify that the vault folder structure exists and has proper permissions
+- For Gold tier features, check that required API credentials are configured in `.env`
+- Check rate limits if social media or Odoo operations are failing
 
 ## Contributing
 

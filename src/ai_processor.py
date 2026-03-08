@@ -30,9 +30,9 @@ class AIProcessor:
         self.logs_path = self.vault_path / "Logs"
 
         # Configure Gemini API
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not set in .env file")
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY required")
 
         self.client = genai.Client(api_key=api_key)
 
@@ -90,7 +90,7 @@ Please process this task according to the guidelines above. Provide a clear, act
 
             # Call the Gemini API
             response = self.client.models.generate_content(
-                model="gemma-3-27b-it",
+                model="gemini-3.1-flash-lite-preview",
                 contents=prompt
             )
 
@@ -193,17 +193,17 @@ Please process this task according to the guidelines above. Provide a clear, act
         else:
             dashboard_content += "- No recent activity"
 
-        dashboard_content += """
+        dashboard_content += f"""
 
 ## System Status
 - AI Processor: **Ready**
-- Last Run: **""" + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + """**
+- Last Run: **{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}**
 - Processing Engine: **Gemini API**
 
 ## Directories
-- Needs Action: """ + str(self.needs_action_path) + """
-- Done: """ + str(self.done_path) + """
-- Logs: """ + str(self.logs_path) + """
+- Needs Action: {self.needs_action_path}
+- Done: {self.done_path}
+- Logs: {self.logs_path}
 """
 
         # Write the dashboard

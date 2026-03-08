@@ -1,11 +1,8 @@
-"""
-HITL (Human-in-the-Loop) Watcher for the Personal AI Employee system.
-Monitors the Approved folder for approved files and executes the appropriate actions.
-"""
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
+
 import json
-import os
 import smtplib
-import sys
 import time
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -62,11 +59,9 @@ class EmailSender:
             server.sendmail(self.gmail_email, to, text)
             server.quit()
 
-            print(f"✓ Email sent successfully to: {to}")
-            return True
-
+            print(f"SUCCESS: Email sent successfully to: {to}")
         except Exception as e:
-            print(f"✗ Error sending email to {to}: {e}")
+            print(f"ERROR: Error sending email to {to}: {e}")
             return False
 
 
@@ -91,7 +86,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
 
         # Only process .md files in the Approved folder
         if Path(event.src_path).suffix.lower() == '.md' and Path(event.src_path).parent == self.approved_path:
-            print(f"📁 New approved file detected: {Path(event.src_path).name}")
+            print(f"INFO: New approved file detected: {Path(event.src_path).name}")
             self._process_approved_file(event.src_path)
 
     def on_moved(self, event):
@@ -101,7 +96,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
 
         # Only process .md files moved into the Approved folder
         if Path(event.dest_path).suffix.lower() == '.md' and Path(event.dest_path).parent == self.approved_path:
-            print(f"📁 Approved file moved: {Path(event.dest_path).name}")
+            print(f"INFO: Approved file moved: {Path(event.dest_path).name}")
             self._process_approved_file(event.dest_path)
 
     def _process_approved_file(self, file_path: str):
@@ -109,7 +104,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
         try:
             file_path_obj = Path(file_path)
 
-            print(f"📝 Processing approved file: {file_path_obj.name}")
+            print(f"INFO: Processing approved file: {file_path_obj.name}")
 
             # Read the file content
             with open(file_path_obj, 'r', encoding='utf-8') as f:
@@ -119,7 +114,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
             action, to_email, subject, body = self._parse_approval_file(content)
 
             if not action:
-                print(f"⚠️  No action specified in file: {file_path_obj.name}")
+                print(f"WARNING: No action specified in file: {file_path_obj.name}")
                 self._log_action("ACTION_PARSE_ERROR", f"No action specified in file: {file_path_obj.name}")
                 return
 
@@ -127,7 +122,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
             if action == "send_email":
                 self._execute_email_action(to_email, subject, body, file_path_obj)
             else:
-                print(f"⚠️  Unknown action '{action}' in file: {file_path_obj.name}")
+                print(f"WARNING: Unknown action '{action}' in file: {file_path_obj.name}")
                 self._log_action("UNKNOWN_ACTION", f"Unknown action '{action}' in file: {file_path_obj.name}")
 
             # Move the file to Done folder after processing
@@ -135,7 +130,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
 
         except Exception as e:
             error_msg = f"Error processing approved file {file_path}: {str(e)}"
-            print(f"❌ {error_msg}")
+            print(f"ERROR: {error_msg}")
             self._log_action("PROCESSING_ERROR", error_msg)
 
     def _parse_approval_file(self, content: str) -> tuple:
@@ -187,12 +182,12 @@ class ApprovedFileHandler(FileSystemEventHandler):
     def _execute_email_action(self, to_email: str, subject: str, body: str, file_path: Path):
         """Execute the send_email action."""
         if not to_email or not subject:
-            print(f"⚠️  Missing email fields (to: {to_email}, subject: {subject}) in file: {file_path.name}")
+            print(f"WARNING: Missing email fields (to: {to_email}, subject: {subject}) in file: {file_path.name}")
             self._log_action("EMAIL_FIELDS_MISSING", f"Missing email fields in file: {file_path.name}")
             return
 
-        print(f"📧 Preparing to send email to: {to_email}")
-        print(f"📧 Subject: {subject}")
+        print(f"EMAIL: Preparing to send email to: {to_email}")
+        print(f"EMAIL: Subject: {subject}")
 
         if self.dry_run:
             print(f"(DRY RUN) Would send email to: {to_email}")
@@ -225,7 +220,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
         # Move the file
         file_path.rename(dest_file)
 
-        print(f"✅ Moved file to Done: {dest_file.name}")
+        print(f"SUCCESS: Moved file to Done: {dest_file.name}")
         self._log_action("FILE_MOVED_DONE", f"Moved file to Done: {dest_file.name}")
 
     def _log_action(self, action_type: str, message: str):
@@ -310,7 +305,7 @@ class HITLWatcher:
         """Stop the HITL watcher."""
         self.observer.stop()
         self.observer.join()
-        print("\n🛑 HITL watcher stopped")
+        print("\nSTOPPING: HITL watcher stopped")
         self._log_action("WATCHER_STOPPED", "HITL watcher stopped")
 
     def _log_action(self, action_type: str, message: str):
@@ -357,10 +352,10 @@ def main():
     dry_run_env = os.getenv('DRY_RUN', 'false').lower()
     dry_run = dry_run_env in ['true', '1', 'yes']
 
-    print(f"🚀 Starting HITL Watcher")
-    print(f"📁 Vault Path: {vault_path}")
-    print(f"🧪 Dry Run Mode: {dry_run}")
-    print(f"📋 Watching for approved files in: {Path(vault_path) / 'Approved'}")
+    print(f"STARTING: HITL Watcher")
+    print(f"INFO: Vault Path: {vault_path}")
+    print(f"INFO: Dry Run Mode: {dry_run}")
+    print(f"INFO: Watching for approved files in: {Path(vault_path) / 'Approved'}")
     print("-" * 50)
 
     # Create the watcher instance
@@ -370,7 +365,7 @@ def main():
     try:
         watcher.start()
     except KeyboardInterrupt:
-        print("\n🛑 Stopping HITL watcher...")
+        print("\nSTOPPING: HITL watcher...")
         watcher.stop()
 
 

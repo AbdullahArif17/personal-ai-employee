@@ -202,3 +202,4 @@ As a user, I want the AI employee to automatically compile a comprehensive weekl
 - Q: Should the system have fallback options if the primary AI model is unavailable? → A: Multiple fallback models if primary fails
 - Q: What should be the maximum time period for retry attempts before permanently failing a task? → A: 24 hours maximum retry period
 - Q: How long should the system retain logs and processed items before archiving or deletion? → A: 90 days retention
+- Q: What should happen to pending approval items if they remain unapproved for an extended period? → A: 30 days before auto-rejection

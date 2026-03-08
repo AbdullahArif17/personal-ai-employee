@@ -14,7 +14,9 @@
       "Bash(git fetch:*)",
       "Bash(.specify/scripts/powershell/setup-plan.ps1:*)",
       "Bash(.specify/scripts/powershell/create-new-feature.ps1:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(ls:*)",
+      "Bash(pip3 install:*)"
     ]
   }
 }
