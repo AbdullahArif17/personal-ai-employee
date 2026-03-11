@@ -5,8 +5,13 @@ Handles environment variables and application settings for Gold tier features.
 
 import os
 import sys
-sys.path.insert(0, os.path.dirname(__file__))
+from pathlib import Path
 from typing import Optional
+
+# Add the src directory to the Python path to allow imports when running as a script
+src_dir = Path(__file__).parent
+sys.path.insert(0, str(src_dir))
+
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -50,24 +55,24 @@ class ConfigManager:
 
     # Twitter/X API Configuration
     @property
-    def twitter_api_key(self) -> Optional[str]:
-        """Twitter API key."""
-        return os.getenv('TWITTER_API_KEY')
+    def twitter_consumer_key(self) -> Optional[str]:
+        """Twitter consumer key."""
+        return os.getenv('TWITTER_CONSUMER_KEY')
 
     @property
-    def twitter_api_secret(self) -> Optional[str]:
-        """Twitter API secret."""
-        return os.getenv('TWITTER_API_SECRET')
+    def twitter_consumer_secret(self) -> Optional[str]:
+        """Twitter consumer secret."""
+        return os.getenv('TWITTER_CONSUMER_SECRET')
 
     @property
-    def twitter_access_token(self) -> Optional[str]:
-        """Twitter access token."""
-        return os.getenv('TWITTER_ACCESS_TOKEN')
+    def twitter_user_access_token(self) -> Optional[str]:
+        """Twitter user access token."""
+        return os.getenv('TWITTER_USER_ACCESS_TOKEN')
 
     @property
-    def twitter_access_secret(self) -> Optional[str]:
-        """Twitter access secret."""
-        return os.getenv('TWITTER_ACCESS_SECRET')
+    def twitter_user_access_secret(self) -> Optional[str]:
+        """Twitter user access secret."""
+        return os.getenv('TWITTER_USER_ACCESS_SECRET')
 
     @property
     def twitter_bearer_token(self) -> Optional[str]:
@@ -115,6 +120,97 @@ class ConfigManager:
     def odoo_password(self) -> Optional[str]:
         """Odoo password."""
         return os.getenv('ODOO_PASSWORD')
+
+    # Twitter/X API Configuration
+    @property
+    def twitter_consumer_key(self) -> Optional[str]:
+        """Twitter consumer key."""
+        return os.getenv('TWITTER_CONSUMER_KEY')
+
+    @property
+    def twitter_consumer_secret(self) -> Optional[str]:
+        """Twitter consumer secret."""
+        return os.getenv('TWITTER_CONSUMER_SECRET')
+
+    @property
+    def twitter_user_access_token(self) -> Optional[str]:
+        """Twitter user access token."""
+        return os.getenv('TWITTER_USER_ACCESS_TOKEN')
+
+    @property
+    def twitter_user_access_secret(self) -> Optional[str]:
+        """Twitter user access secret."""
+        return os.getenv('TWITTER_USER_ACCESS_SECRET')
+
+    @property
+    def twitter_bearer_token(self) -> Optional[str]:
+        """Twitter bearer token."""
+        return os.getenv('TWITTER_BEARER_TOKEN')
+
+    # Facebook/Instagram API Configuration
+    @property
+    def facebook_access_token(self) -> Optional[str]:
+        """Facebook access token."""
+        return os.getenv('FACEBOOK_ACCESS_TOKEN')
+
+    @property
+    def facebook_page_id(self) -> Optional[str]:
+        """Facebook page ID."""
+        return os.getenv('FACEBOOK_PAGE_ID')
+
+    @property
+    def instagram_access_token(self) -> Optional[str]:
+        """Instagram access token."""
+        return os.getenv('INSTAGRAM_ACCESS_TOKEN')
+
+    @property
+    def instagram_account_id(self) -> Optional[str]:
+        """Instagram account ID."""
+        return os.getenv('INSTAGRAM_ACCOUNT_ID')
+
+    # Rate Limiting Configuration
+    @property
+    def twitter_daily_limit(self) -> int:
+        """Daily limit for Twitter posts."""
+        return int(os.getenv('TWITTER_DAILY_LIMIT', '5'))
+
+    @property
+    def facebook_daily_limit(self) -> int:
+        """Daily limit for Facebook posts."""
+        return int(os.getenv('FACEBOOK_DAILY_LIMIT', '3'))
+
+    @property
+    def instagram_daily_limit(self) -> int:
+        """Daily limit for Instagram posts."""
+        return int(os.getenv('INSTAGRAM_DAILY_LIMIT', '3'))
+
+    @property
+    def odoo_invoice_daily_limit(self) -> int:
+        """Daily limit for Odoo invoice creation."""
+        return int(os.getenv('ODOO_INVOICE_DAILY_LIMIT', '10'))
+
+    # Retry Configuration
+    @property
+    def max_retry_attempts(self) -> int:
+        """Maximum number of retry attempts for tasks."""
+        return int(os.getenv('MAX_RETRY_ATTEMPTS', '10'))
+
+    @property
+    def max_retry_duration_hours(self) -> int:
+        """Maximum duration for retry attempts in hours."""
+        return int(os.getenv('MAX_RETRY_DURATION_HOURS', '24'))
+
+    # Approval Expiration Configuration
+    @property
+    def approval_expiration_days(self) -> int:
+        """Number of days before unapproved items are auto-rejected."""
+        return int(os.getenv('APPROVAL_EXPIRATION_DAYS', '30'))
+
+    # Log Retention Configuration
+    @property
+    def log_retention_days(self) -> int:
+        """Number of days to retain logs."""
+        return int(os.getenv('LOG_RETENTION_DAYS', '90'))
 
     # Rate Limiting Configuration
     @property

@@ -16,7 +16,8 @@
       "Bash(.specify/scripts/powershell/create-new-feature.ps1:*)",
       "Bash(git checkout:*)",
       "Bash(ls:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(find src/ -name \"*.py\" -exec grep -l \"gemini-3.1-flash-lite[^-]\\\\\" {} \\\\;)"
     ]
   }
 }

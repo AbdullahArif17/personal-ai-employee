@@ -5,13 +5,22 @@ Runs automatically every Sunday night and generates comprehensive business repor
 
 import os
 import json
-import schedule
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 import sys
-from pathlib import Path
+
+# Add the src directory to the Python path to allow imports when running as a script
+src_dir = Path(__file__).parent
+sys.path.insert(0, str(src_dir))
+
+# Import schedule separately to handle if it's not available
+try:
+    import schedule
+except ImportError:
+    print("Warning: schedule library not installed. Please install it with: pip install schedule")
+    schedule = None
 
 # Add the src directory to the Python path to allow imports when running as a script
 src_dir = Path(__file__).parent
@@ -21,19 +30,25 @@ try:
     from .logger import setup_logger, AuditLogger
     from .config import get_config
     from .file_utils import get_file_utils
-    from .odoo_integration import OdooIntegration
 except ImportError:
     # Fallback for when running as a script directly
     from logger import setup_logger, AuditLogger
     from config import get_config
     from file_utils import get_file_utils
-    from odoo_integration import OdooIntegration
 
 logger = setup_logger('weekly_audit')
 audit_logger = AuditLogger('weekly_audit')
 config = get_config()
 file_utils = get_file_utils()
-odoo_integration = OdooIntegration()
+
+# Lazy import for OdooIntegration to avoid circular imports
+def get_odoo_integration():
+    try:
+        from .odoo_integration import OdooIntegration
+    except ImportError:
+        from odoo_integration import OdooIntegration
+    return OdooIntegration()
+
 
 class WeeklyAudit:
     """
@@ -82,7 +97,7 @@ class WeeklyAudit:
         date_from = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
 
         # Get transactions from Odoo
-        transactions = odoo_integration.read_transactions(date_from, date_to)
+        transactions = get_odoo_integration().read_transactions(date_from, date_to)
 
         # Calculate financial metrics
         total_revenue = sum(t['total_amount'] for t in transactions)

@@ -49,8 +49,8 @@ class TaskStateManager:
         # Load existing task states
         self.task_states = self._load_states()
 
-    def _load_states(self) -> Dict[str, Dict[str, Any]]:
-        """Load task states from storage."""
+    def _load_states(self) -> Dict[str, Any]:
+        """Load task states from file if it exists."""
         if self.storage_path.exists():
             try:
                 with open(self.storage_path, 'r') as f:
@@ -66,39 +66,12 @@ class TaskStateManager:
         return {}
 
     def _save_states(self):
-        """Save task states to storage."""
+        """Save task states to file."""
         try:
             with open(self.storage_path, 'w') as f:
                 json.dump(self.task_states, f, indent=2, default=str)
         except IOError as e:
             logger.error(f"Error saving task states: {e}")
-
-    def initialize_task(self, task_id: str) -> Dict[str, Any]:
-        """
-        Initialize state for a new task.
-
-        Args:
-            task_id: Unique identifier for the task
-
-        Returns:
-            Initial state dictionary for the task
-        """
-        now = datetime.now().isoformat()
-        initial_state = {
-            'task_id': task_id,
-            'attempts': 0,
-            'status': 'new',
-            'created_at': now,
-            'last_attempt': None,
-            'result': None,
-            'last_updated': now
-        }
-
-        self.task_states[task_id] = initial_state
-        self._save_states()
-
-        logger.debug(f"Initialized state for task: {task_id}")
-        return initial_state
 
     def get_task_state(self, task_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -124,8 +97,15 @@ class TaskStateManager:
             True if update was successful, False otherwise
         """
         if task_id not in self.task_states:
-            logger.warning(f"Attempted to update non-existent task: {task_id}")
-            return False
+            # Initialize new task state
+            self.task_states[task_id] = {
+                'task_id': task_id,
+                'attempts': 0,
+                'status': 'new',
+                'created_at': datetime.now().isoformat(),
+                'last_attempt': None,
+                'result': None
+            }
 
         # Apply updates
         for key, value in updates.items():
@@ -285,7 +265,7 @@ class TaskStateManager:
 
         return len(expired_tasks)
 
-    def get_all_tasks(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_tasks(self) -> Dict[str, Any]:
         """
         Get all tracked tasks.
 
@@ -294,7 +274,7 @@ class TaskStateManager:
         """
         return self.task_states.copy()
 
-    def get_active_tasks(self) -> Dict[str, Dict[str, Any]]:
+    def get_active_tasks(self) -> Dict[str, Any]:
         """
         Get all active tasks (not completed or failed).
 

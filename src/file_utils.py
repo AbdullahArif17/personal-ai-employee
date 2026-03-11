@@ -4,14 +4,25 @@ File utilities for vault folder monitoring and state management in the Personal 
 
 import os
 import sys
-sys.path.insert(0, os.path.dirname(__file__))
+from pathlib import Path
+
+# Add the src directory to the Python path to allow imports when running as a script
+src_dir = Path(__file__).parent
+sys.path.insert(0, str(src_dir))
 
 import time
 import json
-from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-from logger import setup_logger
+
+try:
+    from .logger import setup_logger
+except ImportError:
+    # Fallback for when running as a script directly
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from logger import setup_logger
 
 logger = setup_logger('file_utils')
 
@@ -179,6 +190,16 @@ class FileUtils:
         except Exception as e:
             logger.error(f"Error checking file age for {file_path.name}: {str(e)}")
             return False
+
+    @property
+    def pending_approval_path(self) -> Path:
+        """
+        Get the path to the Pending_Approval folder.
+
+        Returns:
+            Path object to the Pending_Approval folder
+        """
+        return self.vault_path / "Pending_Approval"
 
     def get_company_handbook_content(self) -> Optional[str]:
         """

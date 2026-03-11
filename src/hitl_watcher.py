@@ -121,6 +121,8 @@ class ApprovedFileHandler(FileSystemEventHandler):
             # Execute the appropriate action
             if action == "send_email":
                 self._execute_email_action(to_email, subject, body, file_path_obj)
+            elif action == "post_tweet":
+                self._execute_tweet_action(body, file_path_obj)
             else:
                 print(f"WARNING: Unknown action '{action}' in file: {file_path_obj.name}")
                 self._log_action("UNKNOWN_ACTION", f"Unknown action '{action}' in file: {file_path_obj.name}")
@@ -222,6 +224,73 @@ class ApprovedFileHandler(FileSystemEventHandler):
 
         print(f"SUCCESS: Moved file to Done: {dest_file.name}")
         self._log_action("FILE_MOVED_DONE", f"Moved file to Done: {dest_file.name}")
+
+    def _execute_tweet_action(self, content: str, file_path: Path):
+        """Execute a Twitter/X post action."""
+        if not content:
+            print(f"WARNING: Empty content for Twitter post in file: {file_path.name}")
+            self._log_action("TWITTER_EMPTY_CONTENT", f"Empty content for Twitter post in file: {file_path.name}")
+            return False
+
+        if self.dry_run:
+            print(f"(DRY RUN) Would post to Twitter: {content[:50]}...")
+            self._log_action("TWITTER_DRY_RUN", f"Would post to Twitter: {file_path.name}")
+            return True
+
+        try:
+            # Import Twitter libraries
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            import tweepy
+            from config import config
+
+            # Get Twitter credentials
+            consumer_key = config.twitter_consumer_key
+            consumer_secret = config.twitter_consumer_secret
+            user_access_token = config.twitter_user_access_token
+            user_access_secret = config.twitter_user_access_secret
+            bearer_token = config.twitter_bearer_token
+
+            if not all([consumer_key, consumer_secret, user_access_token, user_access_secret, bearer_token]):
+                error_msg = f"Missing required Twitter API credentials for posting: {file_path.name}"
+                print(error_msg)
+                self._log_action("TWITTER_CREDENTIALS_MISSING", error_msg)
+                return False
+
+            # Authenticate with Twitter API v2
+            client = tweepy.Client(
+                bearer_token=bearer_token,
+                consumer_key=consumer_key,
+                consumer_secret=consumer_secret,
+                access_token=user_access_token,
+                access_token_secret=user_access_secret
+            )
+
+            # Validate content length (Twitter has 280 character limit)
+            if len(content) > 280:
+                content = content[:277] + "..."
+
+            # Post the tweet
+            response = client.create_tweet(text=content)
+
+            if response.data and 'id' in response.data:
+                tweet_id = response.data['id']
+                success_msg = f"Successfully posted to Twitter with ID: {tweet_id} from file: {file_path.name}"
+                print(success_msg)
+                self._log_action("TWITTER_POSTED", success_msg)
+                return True
+            else:
+                error_msg = f"Failed to post to Twitter: {file_path.name}, no ID returned"
+                print(error_msg)
+                self._log_action("TWITTER_FAILED", error_msg)
+                return False
+
+        except Exception as e:
+            error_msg = f"Error executing Twitter action from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("TWITTER_EXECUTION_ERROR", error_msg)
+            return False
 
     def _log_action(self, action_type: str, message: str):
         """Log an action to the logs folder."""

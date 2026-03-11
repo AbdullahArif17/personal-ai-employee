@@ -6,10 +6,20 @@ Implements tracking for Twitter (5/day), Facebook (3/day), Instagram (3/day), an
 import os
 import json
 import time
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
-from .logger import setup_logger
+
+# Add the src directory to the Python path to allow imports when running as a script
+src_dir = Path(__file__).parent
+sys.path.insert(0, str(src_dir))
+
+try:
+    from .logger import setup_logger
+except ImportError:
+    # Fallback for when running as a script directly
+    from logger import setup_logger
 
 logger = setup_logger('rate_limiter')
 

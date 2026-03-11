@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional
 import sys
+import os
 from pathlib import Path
 
 # Add the src directory to the Python path to allow imports when running as a script
@@ -19,6 +20,7 @@ try:
     from .logger import setup_logger
 except ImportError:
     # Fallback for when running as a script directly
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from logger import setup_logger
 
 logger = setup_logger('audit_trail')

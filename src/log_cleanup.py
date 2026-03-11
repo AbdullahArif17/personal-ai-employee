@@ -8,7 +8,10 @@ import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional
-from .logger import setup_logger
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from logger import setup_logger
 
 logger = setup_logger('log_cleanup')
 

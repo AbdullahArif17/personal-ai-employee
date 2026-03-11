@@ -313,16 +313,21 @@ class ApprovedFileHandler(FileSystemEventHandler):
                 post_content = post_content[:277] + "..."
 
             # Import Twitter libraries
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
             import tweepy
-            from .config import config
+            from config import config
 
             # Get Twitter credentials
-            api_key = config.twitter_api_key
-            api_secret = config.twitter_api_secret
-            access_token = config.twitter_access_token
-            access_token_secret = config.twitter_access_secret
+            consumer_key = config.twitter_consumer_key
+            consumer_secret = config.twitter_consumer_secret
+            user_access_token = config.twitter_user_access_token
+            user_access_secret = config.twitter_user_access_secret
+            # Also need bearer token for API v2
+            bearer_token = config.twitter_bearer_token
 
-            if not all([api_key, api_secret, access_token, access_token_secret]):
+            if not all([consumer_key, consumer_secret, user_access_token, user_access_secret, bearer_token]):
                 error_msg = f"Missing Twitter API credentials for posting: {file_path.name}"
                 print(error_msg)
                 self._log_action("TWITTER_POST_FAILED", error_msg)
@@ -330,10 +335,11 @@ class ApprovedFileHandler(FileSystemEventHandler):
 
             # Authenticate with Twitter API
             client = tweepy.Client(
-                consumer_key=api_key,
-                consumer_secret=api_secret,
-                access_token=access_token,
-                access_token_secret=access_token_secret
+                bearer_token=bearer_token,
+                consumer_key=consumer_key,
+                consumer_secret=consumer_secret,
+                access_token=user_access_token,
+                access_token_secret=user_access_secret
             )
 
             # Post the tweet
@@ -375,8 +381,11 @@ class ApprovedFileHandler(FileSystemEventHandler):
             post_content = post_content.strip()
 
             # Import Facebook libraries
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
             import requests
-            from .config import config
+            from config import config
 
             # Get Facebook credentials
             access_token = config.facebook_access_token
@@ -436,8 +445,11 @@ class ApprovedFileHandler(FileSystemEventHandler):
             post_content = post_content.strip()
 
             # Import Instagram libraries
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
             import requests
-            from .config import config
+            from config import config
 
             # Get Instagram credentials
             access_token = config.instagram_access_token
@@ -506,8 +518,11 @@ class ApprovedFileHandler(FileSystemEventHandler):
                 content = f.read()
 
             # Import Odoo libraries
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
             from odoo_rpc import ODOO
-            from .config import config
+            from config import config
 
             # Get Odoo credentials
             url = config.odoo_url

@@ -7,6 +7,13 @@ import os
 import xmlrpc.client
 from datetime import datetime
 from typing import Optional, Dict, Any, List
+import sys
+from pathlib import Path
+
+# Add the src directory to the Python path to allow imports when running as a script
+src_dir = Path(__file__).parent
+sys.path.insert(0, str(src_dir))
+
 try:
     from .logger import setup_logger, AuditLogger
     from .config import get_config
@@ -317,11 +324,11 @@ class OdooApiClient:
         if kwargs is None:
             kwargs = {}
 
-        # Use the special 'call_kw' method to call a record method
+        # Use the special 'call' method to call a record method
         return self.execute_kw(model, 'call', [[record_id], method_name, args], kwargs)
 
 
-# Global Odoo API client instance
+# Global instance for easy access
 odoo_api_client = OdooApiClient()
 
 
@@ -388,7 +395,7 @@ def search_customers(domain: List = None) -> List[Dict]:
         List of customer records, or empty list if failed
     """
     if domain is None:
-        domain = [['customer_rank', '>', 0]]  # Only customers
+        domain = [('customer_rank', '>', 0)]  # Only customers
 
     client = get_odoo_api_client()
     return client.search_read('res.partner', domain, ['name', 'email', 'phone'])
@@ -440,6 +447,6 @@ def create_invoice(customer_id: int, line_items: List[Dict],
 
     if invoice_id:
         # Validate and post the invoice
-        client.call_method('account.move', invoice_id, 'action_post')
+        client.execute_kw('account.move', 'action_post', [[invoice_id]])
 
     return invoice_id

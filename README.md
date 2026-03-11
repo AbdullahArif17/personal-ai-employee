@@ -39,6 +39,8 @@ The Personal AI Employee is a Bronze-tier automation system that:
    - **Advanced Approval Workflow**: Extended approval system supporting all Gold tier features
    - **Performance Monitoring**: Built-in monitoring for all features with alerts for slow operations
    - **Audit Trail Compliance**: Comprehensive logging for all actions to ensure compliance
+   - **Secure Credential Management**: All API credentials stored in .env file only, never in vault or committed to git
+   - **Local-First Architecture**: All processing occurs locally on user's machine, maintaining data privacy and security
 
 ## Prerequisites
 
