@@ -1,9 +1,12 @@
-import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import json
 import smtplib
 import time
+import urllib.parse
+import webbrowser
 from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -122,7 +125,9 @@ class ApprovedFileHandler(FileSystemEventHandler):
             if action == "send_email":
                 self._execute_email_action(to_email, subject, body, file_path_obj)
             elif action == "post_tweet":
-                self._execute_tweet_action(body, file_path_obj)
+                self._execute_tweet_browser_action(body, file_path_obj)
+            elif action == "post_thread":
+                self._execute_tweet_thread_action(body, file_path_obj)
             else:
                 print(f"WARNING: Unknown action '{action}' in file: {file_path_obj.name}")
                 self._log_action("UNKNOWN_ACTION", f"Unknown action '{action}' in file: {file_path_obj.name}")
@@ -225,72 +230,174 @@ class ApprovedFileHandler(FileSystemEventHandler):
         print(f"SUCCESS: Moved file to Done: {dest_file.name}")
         self._log_action("FILE_MOVED_DONE", f"Moved file to Done: {dest_file.name}")
 
-    def _execute_tweet_action(self, content: str, file_path: Path):
-        """Execute a Twitter/X post action."""
+    def _execute_tweet_browser_action(self, content: str, file_path: Path):
+        """Execute a Twitter post action using web browser instead of API."""
         if not content:
             print(f"WARNING: Empty content for Twitter post in file: {file_path.name}")
             self._log_action("TWITTER_EMPTY_CONTENT", f"Empty content for Twitter post in file: {file_path.name}")
             return False
 
         if self.dry_run:
-            print(f"(DRY RUN) Would post to Twitter: {content[:50]}...")
-            self._log_action("TWITTER_DRY_RUN", f"Would post to Twitter: {file_path.name}")
+            print(f"(DRY RUN) Would open Twitter in browser: {content[:50]}...")
+            self._log_action("TWITTER_BROWSER_DRY_RUN", f"Would open Twitter in browser: {file_path.name}")
             return True
 
         try:
-            # Import Twitter libraries
-            import sys
-            import os
-            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-            import tweepy
-            from config import config
+            # Parse content to remove YAML frontmatter
+            clean_tweet = self._parse_and_clean_tweet_content(content)
 
-            # Get Twitter credentials
-            consumer_key = config.twitter_consumer_key
-            consumer_secret = config.twitter_consumer_secret
-            user_access_token = config.twitter_user_access_token
-            user_access_secret = config.twitter_user_access_secret
-            bearer_token = config.twitter_bearer_token
-
-            if not all([consumer_key, consumer_secret, user_access_token, user_access_secret, bearer_token]):
-                error_msg = f"Missing required Twitter API credentials for posting: {file_path.name}"
-                print(error_msg)
-                self._log_action("TWITTER_CREDENTIALS_MISSING", error_msg)
+            if not clean_tweet.strip():
+                print(f"WARNING: No content found after parsing for Twitter post in file: {file_path.name}")
+                self._log_action("TWITTER_NO_CONTENT_AFTER_PARSE", f"No content found after parsing in file: {file_path.name}")
                 return False
 
-            # Authenticate with Twitter API v2
-            client = tweepy.Client(
-                bearer_token=bearer_token,
-                consumer_key=consumer_key,
-                consumer_secret=consumer_secret,
-                access_token=user_access_token,
-                access_token_secret=user_access_secret
-            )
+            # Truncate to 280 characters if needed
+            if len(clean_tweet) > 280:
+                clean_tweet = clean_tweet[:277] + "..."
 
-            # Validate content length (Twitter has 280 character limit)
-            if len(content) > 280:
-                content = content[:277] + "..."
+            # Encode the tweet content for URL
+            encoded_tweet = urllib.parse.quote(clean_tweet)
+            tweet_url = f"https://twitter.com/intent/tweet?text={encoded_tweet}"
 
-            # Post the tweet
-            response = client.create_tweet(text=content)
+            # Open the URL in the default web browser
+            webbrowser.open(tweet_url)
 
-            if response.data and 'id' in response.data:
-                tweet_id = response.data['id']
-                success_msg = f"Successfully posted to Twitter with ID: {tweet_id} from file: {file_path.name}"
-                print(success_msg)
-                self._log_action("TWITTER_POSTED", success_msg)
-                return True
-            else:
-                error_msg = f"Failed to post to Twitter: {file_path.name}, no ID returned"
-                print(error_msg)
-                self._log_action("TWITTER_FAILED", error_msg)
-                return False
+            print("SUCCESS: Opened Twitter in browser!")
+            print("Please click 'Post' button in your browser to publish.")
+            print(f"Tweet preview: {clean_tweet[:50]}...")
+
+            # Log the action
+            self._log_action("tweet_browser_opened", f"Manual posting required - opened in browser from file: {file_path.name}")
+            return True
 
         except Exception as e:
-            error_msg = f"Error executing Twitter action from {file_path.name}: {str(e)}"
+            error_msg = f"Error opening Twitter in browser from {file_path.name}: {str(e)}"
             print(error_msg)
-            self._log_action("TWITTER_EXECUTION_ERROR", error_msg)
+            self._log_action("TWITTER_BROWSER_ERROR", error_msg)
             return False
+
+    def _execute_tweet_thread_action(self, content: str, file_path: Path):
+        """Execute a Twitter thread action using web browser."""
+        if not content:
+            print(f"WARNING: Empty content for Twitter thread in file: {file_path.name}")
+            self._log_action("TWITTER_THREAD_EMPTY_CONTENT", f"Empty content for Twitter thread in file: {file_path.name}")
+            return False
+
+        if self.dry_run:
+            print(f"(DRY RUN) Would open Twitter thread in browser: {content[:50]}...")
+            self._log_action("TWITTER_THREAD_BROWSER_DRY_RUN", f"Would open Twitter thread in browser: {file_path.name}")
+            return True
+
+        try:
+            # Parse content to remove YAML frontmatter
+            clean_content = self._parse_and_clean_tweet_content(content)
+
+            if not clean_content.strip():
+                print(f"WARNING: No content found after parsing for Twitter thread in file: {file_path.name}")
+                self._log_action("TWITTER_THREAD_NO_CONTENT_AFTER_PARSE", f"No content found after parsing in file: {file_path.name}")
+                return False
+
+            # Split content into individual tweets for the thread
+            tweets = self._split_into_tweets(clean_content)
+
+            if not tweets:
+                print(f"WARNING: Could not split content into valid tweets for thread in file: {file_path.name}")
+                self._log_action("TWITTER_THREAD_SPLIT_ERROR", f"Could not split content into valid tweets in file: {file_path.name}")
+                return False
+
+            # Open the first tweet in browser
+            first_tweet = tweets[0]
+            if len(first_tweet) > 280:
+                first_tweet = first_tweet[:277] + "..."
+
+            encoded_tweet = urllib.parse.quote(first_tweet)
+            tweet_url = f"https://twitter.com/intent/tweet?text={encoded_tweet}"
+            webbrowser.open(tweet_url)
+
+            # Save remaining tweets to a temp file in Logs folder if there are more
+            remaining_tweets = tweets[1:] if len(tweets) > 1 else []
+
+            if remaining_tweets:
+                # Create temp file in Logs folder
+                logs_path = self.logs_path
+                logs_path.mkdir(exist_ok=True)
+                temp_file_path = logs_path / f"thread_tweets_{file_path.stem}_{int(time.time())}.txt"
+
+                with open(temp_file_path, 'w', encoding='utf-8') as f:
+                    for i, tweet in enumerate(remaining_tweets, 1):
+                        if len(tweet) > 280:
+                            tweet = tweet[:277] + "..."
+                        f.write(f"Tweet {i}: {tweet}\n\n")
+
+                print(f"SUCCESS: Opened first tweet in browser!")
+                print("Please click 'Post' button in your browser to publish the first tweet.")
+                print(f"Remaining {len(remaining_tweets)} tweets saved to: {temp_file_path}")
+                print("Please post the remaining tweets manually in sequence.")
+                print(f"First tweet preview: {first_tweet[:50]}...")
+            else:
+                print("SUCCESS: Opened Twitter in browser!")
+                print("Please click 'Post' button in your browser to publish.")
+                print(f"Tweet preview: {first_tweet[:50]}...")
+
+            # Log the action
+            self._log_action("tweet_thread_browser_opened", f"Manual thread posting required - opened in browser from file: {file_path.name}, {len(remaining_tweets)} additional tweets saved")
+            return True
+
+        except Exception as e:
+            error_msg = f"Error opening Twitter thread in browser from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("TWITTER_THREAD_BROWSER_ERROR", error_msg)
+            return False
+
+    def _parse_and_clean_tweet_content(self, content: str) -> str:
+        """Parse and clean tweet content by removing YAML frontmatter."""
+        lines = content.split('\n')
+
+        # Look for YAML frontmatter between --- markers
+        if len(lines) >= 3 and lines[0].strip() == '---':
+            # Find the end of the YAML frontmatter
+            for i, line in enumerate(lines[1:], 1):
+                if line.strip() == '---':
+                    # Return everything after the closing ---
+                    return '\n'.join(lines[i+1:]).strip()
+
+        # If no YAML frontmatter, return the content as is
+        return content.strip()
+
+    def _split_into_tweets(self, content: str) -> list:
+        """Split content into individual tweets for a thread."""
+        # Try splitting by double newlines first
+        potential_tweets = content.split('\n\n')
+
+        # If that doesn't work well, try looking for numbered patterns like "1/5", "2/5", etc.
+        if len(potential_tweets) <= 1:
+            import re
+            # Look for patterns like "1/5", "2/5" at the beginning of lines
+            numbered_pattern = r'^(\d+/\d+)\s*'
+            lines = content.split('\n')
+            tweets = []
+            current_tweet = ""
+
+            for line in lines:
+                # Check if this line starts with a number pattern
+                match = re.match(numbered_pattern, line.strip())
+                if match:
+                    # If we have accumulated content, save the previous tweet
+                    if current_tweet.strip():
+                        tweets.append(current_tweet.strip())
+                    # Start a new tweet without the number pattern
+                    current_tweet = re.sub(numbered_pattern, '', line.strip()) + "\n"
+                else:
+                    current_tweet += line + "\n"
+
+            # Add the last tweet if it exists
+            if current_tweet.strip():
+                tweets.append(current_tweet.strip())
+
+            return tweets
+
+        # Filter out empty tweets and clean up
+        return [tweet.strip() for tweet in potential_tweets if tweet.strip()]
 
     def _log_action(self, action_type: str, message: str):
         """Log an action to the logs folder."""

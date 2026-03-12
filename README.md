@@ -31,7 +31,7 @@ The Personal AI Employee is a Bronze-tier automation system that:
 
 3. **Gold Tier (Advanced Automation)**:
    - **Ralph Wiggum Loop**: Autonomous task completion loop that monitors Needs_Action folder, processes tasks with AI, and retries up to 10 times before stopping
-   - **Twitter/X Integration**: AI-powered tweet generation using business context from Company_Handbook.md, with approval workflow and rate limiting (max 5 posts per day)
+   - **Twitter/X Integration**: AI-powered tweet generation using business context from Company_Handbook.md, with approval workflow and rate limiting (max 5 posts per day) - opens in browser for manual posting
    - **Facebook & Instagram Integration**: AI-powered post generation with platform-appropriate formatting, hashtags and emojis, with approval workflow and rate limiting (max 3 posts per day per platform)
    - **Odoo Accounting Integration**: Connect to local Odoo Community instance via JSON-RPC API for invoice creation and financial reporting, with approval workflow and rate limiting (max 10 invoices per day)
    - **Weekly Business Audit**: Automated weekly audit system that runs every Sunday night, aggregating data from Done files, Odoo financial data, and social media activity to generate comprehensive audit reports
@@ -213,6 +213,7 @@ cd C:\path\to\personal-ai-employee && bash scripts/run_claude.sh
 - `DRY_RUN`: Set to `true` to run in dry-run mode (development only)
 - `VAULT_PATH`: Path to the AI Employee vault (default: ./AI_Employee_Vault)
 - `LOG_LEVEL`: Logging level (DEBUG, INFO, WARNING, ERROR)
+
 
 ### Folder Structure
 
