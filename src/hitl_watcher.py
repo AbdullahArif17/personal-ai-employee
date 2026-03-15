@@ -19,6 +19,14 @@ from watchdog.observers import Observer
 # Load environment variables
 load_dotenv()
 
+# Try to import pyperclip for clipboard functionality
+try:
+    import pyperclip
+    HAS_PYPERCLIP = True
+except ImportError:
+    HAS_PYPERCLIP = False
+    print("INFO: pyperclip not installed. Install it with 'pip install pyperclip' for clipboard functionality.")
+
 
 class EmailSender:
     """Handles sending emails via SMTP."""
@@ -128,6 +136,10 @@ class ApprovedFileHandler(FileSystemEventHandler):
                 self._execute_tweet_browser_action(body, file_path_obj)
             elif action == "post_thread":
                 self._execute_tweet_thread_action(body, file_path_obj)
+            elif action == "post_facebook":
+                self._execute_facebook_action(body, file_path_obj)
+            elif action == "post_instagram":
+                self._execute_instagram_action(body, file_path_obj)
             else:
                 print(f"WARNING: Unknown action '{action}' in file: {file_path_obj.name}")
                 self._log_action("UNKNOWN_ACTION", f"Unknown action '{action}' in file: {file_path_obj.name}")
@@ -364,6 +376,105 @@ class ApprovedFileHandler(FileSystemEventHandler):
         # If no YAML frontmatter, return the content as is
         return content.strip()
 
+    def _parse_and_clean_social_content(self, content: str) -> str:
+        """Parse and clean social media content by removing YAML frontmatter."""
+        lines = content.split('\n')
+
+        # Look for YAML frontmatter between --- markers
+        if len(lines) >= 3 and lines[0].strip() == '---':
+            # Find the end of the YAML frontmatter
+            for i, line in enumerate(lines[1:], 1):
+                if line.strip() == '---':
+                    # Return everything after the closing ---
+                    return '\n'.join(lines[i+1:]).strip()
+
+        # If no YAML frontmatter, return the content as is
+        return content.strip()
+
+    def _execute_facebook_action(self, content: str, file_path: Path):
+        """Execute a Facebook post action using web browser."""
+        if not content:
+            print(f"WARNING: Empty content for Facebook post in file: {file_path.name}")
+            self._log_action("FACEBOOK_EMPTY_CONTENT", f"Empty content for Facebook post in file: {file_path.name}")
+            return False
+
+        if self.dry_run:
+            print(f"(DRY RUN) Would open Facebook in browser: {content[:50]}...")
+            self._log_action("FACEBOOK_BROWSER_DRY_RUN", f"Would open Facebook in browser: {file_path.name}")
+            return True
+
+        try:
+            # Parse content to remove YAML frontmatter
+            clean_content = self._parse_and_clean_social_content(content)
+
+            if not clean_content.strip():
+                print(f"WARNING: No content found after parsing for Facebook post in file: {file_path.name}")
+                self._log_action("FACEBOOK_NO_CONTENT_AFTER_PARSE", f"No content found after parsing in file: {file_path.name}")
+                return False
+
+            # Open Facebook in browser
+            webbrowser.open("https://www.facebook.com/")
+
+            print("SUCCESS: Opened Facebook in browser! Paste the content and post.")
+            print(f"Content to paste:\n{clean_content}")
+
+            # Log the action
+            self._log_action("social_browser_opened", f"Manual posting required - opened Facebook in browser from file: {file_path.name}")
+            return True
+
+        except Exception as e:
+            error_msg = f"Error opening Facebook in browser from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("FACEBOOK_BROWSER_ERROR", error_msg)
+            return False
+
+    def _execute_instagram_action(self, content: str, file_path: Path):
+        """Execute an Instagram post action using web browser."""
+        if not content:
+            print(f"WARNING: Empty content for Instagram post in file: {file_path.name}")
+            self._log_action("INSTAGRAM_EMPTY_CONTENT", f"Empty content for Instagram post in file: {file_path.name}")
+            return False
+
+        if self.dry_run:
+            print(f"(DRY RUN) Would open Instagram in browser: {content[:50]}...")
+            self._log_action("INSTAGRAM_BROWSER_DRY_RUN", f"Would open Instagram in browser: {file_path.name}")
+            return True
+
+        try:
+            # Parse content to remove YAML frontmatter
+            clean_content = self._parse_and_clean_social_content(content)
+
+            if not clean_content.strip():
+                print(f"WARNING: No content found after parsing for Instagram post in file: {file_path.name}")
+                self._log_action("INSTAGRAM_NO_CONTENT_AFTER_PARSE", f"No content found after parsing in file: {file_path.name}")
+                return False
+
+            # Copy content to clipboard if pyperclip is available
+            if HAS_PYPERCLIP:
+                try:
+                    pyperclip.copy(clean_content)
+                    print("INFO: Content copied to clipboard!")
+                except Exception as e:
+                    print(f"INFO: Could not copy to clipboard: {str(e)}")
+            else:
+                print("INFO: pyperclip not available. Content not copied to clipboard.")
+
+            # Open Instagram in browser
+            webbrowser.open("https://www.instagram.com/")
+
+            print("SUCCESS: Opened Instagram in browser! Content copied to clipboard.")
+            print(f"Content to paste:\n{clean_content}")
+
+            # Log the action
+            self._log_action("social_browser_opened", f"Manual posting required - opened Instagram in browser from file: {file_path.name}")
+            return True
+
+        except Exception as e:
+            error_msg = f"Error opening Instagram in browser from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("INSTAGRAM_BROWSER_ERROR", error_msg)
+            return False
+
     def _split_into_tweets(self, content: str) -> list:
         """Split content into individual tweets for a thread."""
         # Try splitting by double newlines first
@@ -399,7 +510,7 @@ class ApprovedFileHandler(FileSystemEventHandler):
         # Filter out empty tweets and clean up
         return [tweet.strip() for tweet in potential_tweets if tweet.strip()]
 
-    def _log_action(self, action_type: str, message: str):
+    def _log_action(self, action_type: str, message: str, platform: str = None):
         """Log an action to the logs folder."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = {
@@ -408,6 +519,10 @@ class ApprovedFileHandler(FileSystemEventHandler):
             "message": message,
             "dry_run": self.dry_run
         }
+
+        # Add platform if provided
+        if platform:
+            log_entry["platform"] = platform
 
         if self.dry_run:
             print(f"(DRY RUN) Would log: {log_entry}")
