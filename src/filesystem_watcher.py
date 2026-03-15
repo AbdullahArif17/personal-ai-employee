@@ -1,12 +1,10 @@
-"""
-Filesystem watcher for the Personal AI Employee system.
-Monitors the Inbox folder and copies new files to Needs_Action with metadata.
-"""
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from base_watcher import BaseWatcher
 
 import json
-import os
 import shutil
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -15,10 +13,6 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
-
-# Add the current directory to the path to allow importing from the same package
-sys.path.insert(0, os.path.dirname(__file__))
-from base_watcher import BaseWatcher
 
 # Load environment variables
 load_dotenv()
@@ -34,6 +28,14 @@ class InboxHandler(FileSystemEventHandler):
         self.inbox_path = vault_path / "Inbox"
         self.needs_action_path = vault_path / "Needs_Action"
         self.logs_path = vault_path / "Logs"
+
+    def scan_existing_files(self):
+        """Scan for existing files in the Inbox folder."""
+        print(f"INFO: Scanning for existing files in: {self.inbox_path}")
+        for item in self.inbox_path.iterdir():
+            if item.is_file():
+                print(f"INFO: Processing existing file: {item.name}")
+                self._process_new_file(str(item))
 
     def on_created(self, event):
         """Handle file creation events in the Inbox folder."""
@@ -74,14 +76,14 @@ class InboxHandler(FileSystemEventHandler):
             self._log_action("FILE_COPIED", f"Copied {file_path_obj.name} to Needs_Action")
 
         except Exception as e:
-            error_msg = f"Error processing file {file_path}: {str(e)}"
+            error_msg = f"ERROR: Error processing file {file_path}: {str(e)}"
             self._log_action("ERROR", error_msg)
             print(error_msg)
 
     def _copy_file_with_metadata(self, source_file: Path, metadata: Dict[str, Any]):
         """Copy file to Needs_Action folder and create metadata sidecar file."""
         if self.dry_run:
-            print(f"(DRY RUN) Would copy {source_file.name} to Needs_Action with metadata")
+            print(f"INFO: (DRY RUN) Would copy {source_file.name} to Needs_Action with metadata")
             return
 
         # Define destination file path
@@ -96,8 +98,8 @@ class InboxHandler(FileSystemEventHandler):
             dest_file = self.needs_action_path / f"{stem}_{counter}{suffix}"
             counter += 1
 
-        # Copy the file
-        shutil.copy2(source_file, dest_file)
+        # Move the file instead of copying to empty the Inbox
+        shutil.move(str(source_file), str(dest_file))
 
         # Create metadata sidecar file
         metadata_file = self.needs_action_path / f"{dest_file.stem}_metadata.json"
@@ -115,7 +117,7 @@ class InboxHandler(FileSystemEventHandler):
         }
 
         if self.dry_run:
-            print(f"(DRY RUN) Would log: {log_entry}")
+            print(f"INFO: (DRY RUN) Would log: {log_entry}")
             return
 
         # Create log filename based on today's date
@@ -157,6 +159,11 @@ class FilesystemWatcher(BaseWatcher):
 
         self.observer = Observer()
         self.handler = InboxHandler(self.vault_path, self.dry_run)
+        self.inbox_folder = "Inbox"
+
+    def process_file(self, file_path: Path):
+        """Delegate processing to the handler."""
+        self.handler._process_new_file(str(file_path))
 
     def start(self):
         """Start the filesystem watcher."""
@@ -171,7 +178,13 @@ class FilesystemWatcher(BaseWatcher):
         # Start the observer
         self.observer.start()
 
-        status_msg = f"Filesystem watcher started, monitoring: {inbox_path}"
+        self.logger.info("Scanning existing files in Inbox...")
+        for existing_file in inbox_path.iterdir():
+            if existing_file.is_file() and not existing_file.name.startswith('.'):
+                self.logger.info(f"Processing existing file: {existing_file.name}")
+                self.process_file(existing_file)
+
+        status_msg = f"INFO: Filesystem watcher started, monitoring: {inbox_path}"
         self.log_action("WATCHER_STARTED", status_msg)
 
         try:
@@ -199,7 +212,7 @@ def main():
     try:
         watcher.start()
     except KeyboardInterrupt:
-        print("\nStopping watcher...")
+        print("\nINFO: Stopping watcher...")
         watcher.stop()
 
 

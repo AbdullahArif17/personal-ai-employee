@@ -1,9 +1,7 @@
-"""
-CEO Briefing Generator for the Personal AI Employee system.
-Generates a weekly executive summary of AI employee activities.
-"""
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
+
 import json
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -24,9 +22,9 @@ class CEOBriefing:
         self.dashboard_path = self.vault_path / "Dashboard.md"
 
         # Configure Gemini API
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not set in .env file")
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY required")
 
         self.client = genai.Client(api_key=api_key)
 
@@ -152,12 +150,12 @@ Format the response in Markdown with clear sections and professional language su
 
         try:
             response = self.client.models.generate_content(
-                model="gemma-3-27b-it",
+                model="gemini-3.1-flash-lite-preview",
                 contents=prompt
             )
             return response.text if response.text else "No content generated"
         except Exception as e:
-            print(f"❌ Error generating CEO briefing with Gemini: {e}")
+            print(f"ERROR: Error generating CEO briefing with Gemini: {e}")
             return f"""# CEO Briefing - {datetime.now().strftime('%Y-%m-%d')}
 
 ## Executive Summary
@@ -201,7 +199,7 @@ Retry AI service and ensure proper configuration.
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(content)
 
-        print(f"📄 Saved CEO briefing: {filepath.name}")
+        print(f"INFO: Saved CEO briefing: {filepath.name}")
 
         return filepath.name
 
@@ -257,10 +255,10 @@ Retry AI service and ensure proper configuration.
             with open(self.dashboard_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-            print("✅ Dashboard updated with briefing information")
+            print("SUCCESS: Dashboard updated with briefing information")
 
         except Exception as e:
-            print(f"❌ Error updating dashboard: {e}")
+            print(f"ERROR: Error updating dashboard: {e}")
 
     def generate_and_save_briefing(self) -> str:
         """
@@ -269,7 +267,7 @@ Retry AI service and ensure proper configuration.
         Returns:
             Filename of the saved briefing
         """
-        print("🔄 Generating CEO Briefing...")
+        print("INFO: Generating CEO Briefing...")
 
         # Collect initial stats
         tasks_completed = self.count_recent_done_files()
@@ -290,15 +288,15 @@ Retry AI service and ensure proper configuration.
         # Update the dashboard with briefing information
         self.update_dashboard(tasks_completed)
 
-        print(f"✅ CEO briefing saved to: {self.vault_path / filename}")
+        print(f"SUCCESS: CEO briefing saved to: {self.vault_path / filename}")
 
         return filename
 
 
 def main():
     """Main function to run the CEO briefing generator."""
-    print("🚀 Starting CEO Briefing Generator")
-    print("📋 This will generate a weekly executive summary")
+    print("STARTING: CEO Briefing Generator")
+    print("INFO: This will generate a weekly executive summary")
     print("-" * 60)
 
     vault_path = os.getenv('VAULT_PATH', 'D:/giaic/personal-ai-employee/AI_Employee_Vault')
@@ -307,7 +305,7 @@ def main():
 
     # Generate and save the CEO briefing
     filename = briefing.generate_and_save_briefing()
-    print(f"🎯 CEO briefing generation completed: {filename}")
+    print(f"SUCCESS: CEO briefing generation completed: {filename}")
 
 
 if __name__ == "__main__":

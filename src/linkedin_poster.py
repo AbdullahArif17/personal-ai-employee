@@ -31,9 +31,9 @@ class LinkedInPoster:
         self.max_posts_per_day = 3
 
         # Configure Gemini API
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not set in .env file")
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY required")
 
         self.client = genai.Client(api_key=api_key)
 
@@ -65,7 +65,7 @@ class LinkedInPoster:
 
         try:
             response = self.client.models.generate_content(
-                model="gemma-3-27b-it",
+                model="gemini-3.1-flash-lite-preview",
                 contents=prompt
             )
             return response.text if response.text else "No content generated"
