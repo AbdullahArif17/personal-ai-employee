@@ -3,6 +3,10 @@ Base watcher class for the Personal AI Employee system.
 Defines the interface for filesystem watchers.
 """
 
+import os
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+
 import abc
 import logging
 from pathlib import Path

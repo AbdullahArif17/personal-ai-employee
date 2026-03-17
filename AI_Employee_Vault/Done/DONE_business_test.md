@@ -1,16 +1,24 @@
 # Response to: business_test.txt
 
-I understand you have several important tasks for your freelance web design business today, including client proposals, unpaid invoices, and social media.
+### Task Prioritization
 
-To determine your first step, let's prioritize based on immediate financial impact and new business generation:
+I understand you are balancing client acquisition, cash flow, and brand visibility. To maximize your business stability today, I recommend prioritizing in the following order:
 
-1.  **Unpaid Invoices**: Address these first. Promptly following up on outstanding payments directly impacts your immediate cash flow.
-2.  **Client Proposals**: Once invoices are addressed, focus on drafting and sending the three client proposals. Securing these new projects is vital for future income.
-3.  **Social Media Posting**: While important for marketing, this can be scheduled after the financial priorities are underway.
+**1. Unpaid Invoices (Cash Flow)**
+Address these first. Send polite, professional follow-up emails to the clients with the outstanding invoices. Cash flow is the lifeblood of your freelance business; prioritize securing funds already earned.
 
-**Next Steps:**
-*   **Contact Clients for Unpaid Invoices**: Send polite follow-up emails or make quick calls.
-*   **Develop & Send Proposals**: Dedicate focused time to complete and submit the three proposals.
-*   **Schedule Social Media**: Plan to allocate 30-60 minutes later today or tomorrow for your social media content creation and scheduling.
+**2. Client Proposals (Revenue Generation)**
+After securing your existing revenue, focus on the 3 waiting proposals. These represent future income. Draft and send these to ensure you don't lose potential contracts to delays.
 
-*Processed by AI Employee on 2026-03-03 03:08:54*
+**3. Social Media (Brand Visibility)**
+Complete this last. While important for long-term growth, it is a lower priority than securing current payments and closing new deals.
+
+---
+
+### Suggested Next Steps
+
+1. **Send Payment Reminders:** Draft and send the invoice follow-ups immediately to get them off your plate.
+2. **Time-Block Proposal Writing:** Allocate a specific 90-minute "deep work" session to finalize your proposals.
+3. **Automate/Batch Social Media:** Spend 20 minutes scheduling posts for the week to remove the daily pressure of posting from your morning routine.
+
+*Processed by AI Employee on 2026-03-09 03:32:51*

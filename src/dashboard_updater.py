@@ -234,7 +234,12 @@ class DashboardUpdater:
             "Done": "Completed tasks",
             "Pending Approval": "Tasks awaiting human approval",
             "Approved": "Approved tasks ready for execution",
-            "Logs": "System logs and activity records"
+            "Logs": "System logs and activity records",
+            "Ralph Loop": "Autonomous task processing",
+            "Twitter/X": "Scheduled posts awaiting approval",
+            "Facebook": "Scheduled posts awaiting approval",
+            "Instagram": "Scheduled posts awaiting approval",
+            "Odoo": "Pending invoices awaiting approval"
         }
 
         for folder_name, count in folder_counts.items():
@@ -279,6 +284,11 @@ class DashboardUpdater:
                            gemini_status: str = "Not configured",
                            gmail_status: str = "Not configured",
                            linkedin_status: str = "Not configured",
+                           twitter_status: str = "Not configured",
+                           facebook_status: str = "Not configured",
+                           instagram_status: str = "Not configured",
+                           odoo_status: str = "Not configured",
+                           ralph_loop_status: str = "Inactive",
                            last_run: str = "Never",
                            dry_run: bool = True):
         """Update the system status section."""
@@ -287,6 +297,11 @@ class DashboardUpdater:
         status_text += f"- Gemini API integration: **{gemini_status}**\n"
         status_text += f"- Gmail integration: **{gmail_status}**\n"
         status_text += f"- LinkedIn integration: **{linkedin_status}**\n"
+        status_text += f"- Twitter/X integration: **{twitter_status}**\n"
+        status_text += f"- Facebook integration: **{facebook_status}**\n"
+        status_text += f"- Instagram integration: **{instagram_status}**\n"
+        status_text += f"- Odoo integration: **{odoo_status}**\n"
+        status_text += f"- Ralph Wiggum Loop: **{ralph_loop_status}**\n"
         status_text += f"- Last run: **{last_run}**\n"
         status_text += f"- DRY_RUN mode: **{'Enabled' if dry_run else 'Disabled'}**\n\n"
 

@@ -30,9 +30,9 @@ class GeminiProcessor:
         self.logs_path = self.vault_path / "Logs"
 
         # Configure Gemini API
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
         if not api_key:
-            raise ValueError("GEMINI_API_KEY environment variable is not set")
+            raise ValueError("GEMINI_API_KEY or GOOGLE_API_KEY required")
 
         self.client = genai.Client(api_key=api_key)
 
@@ -77,7 +77,7 @@ class GeminiProcessor:
 
             # Call the Gemini API
             response = self.client.models.generate_content(
-                model="gemma-3-27b-it",
+                model="gemini-3.1-flash-lite-preview",
                 contents=prompt
             )
 
