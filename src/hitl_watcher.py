@@ -4,6 +4,7 @@ Monitors the Approved folder for approved files and executes the appropriate act
 """
 import json
 import os
+import requests
 import smtplib
 import sys
 import time
@@ -15,6 +16,15 @@ from pathlib import Path
 from dotenv import load_dotenv
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
+
+# Add the project root to the Python path for importing browser_poster
+sys.path.insert(0, str(Path(__file__).parent.parent))
+try:
+    from browser_poster import post_to_facebook, post_to_instagram
+except ImportError:
+    print("⚠️ browser_poster module not found. Please install required dependencies.")
+    post_to_facebook = None
+    post_to_instagram = None
 
 # Load environment variables
 load_dotenv()
@@ -126,6 +136,10 @@ class ApprovedFileHandler(FileSystemEventHandler):
             # Execute the appropriate action
             if action == "send_email":
                 self._execute_email_action(to_email, subject, body, file_path_obj)
+            elif action == "post_facebook":
+                self._execute_facebook_action(content, file_path_obj)
+            elif action == "post_instagram":
+                self._execute_instagram_action(content, file_path_obj)
             else:
                 print(f"⚠️  Unknown action '{action}' in file: {file_path_obj.name}")
                 self._log_action("UNKNOWN_ACTION", f"Unknown action '{action}' in file: {file_path_obj.name}")
@@ -184,6 +198,21 @@ class ApprovedFileHandler(FileSystemEventHandler):
         # If no header found, return None for action and use full content as body
         return None, None, None, content
 
+    def _extract_content(self, content: str) -> str:
+        """Extract content by removing YAML header."""
+        lines = content.strip().split('\n')
+        clean_lines = []
+        in_header = False
+        header_count = 0
+        for line in lines:
+            if line.strip() == '---':
+                header_count += 1
+                in_header = header_count < 2
+                continue
+            if not in_header:
+                clean_lines.append(line)
+        return '\n'.join(clean_lines).strip()
+
     def _execute_email_action(self, to_email: str, subject: str, body: str, file_path: Path):
         """Execute the send_email action."""
         if not to_email or not subject:
@@ -203,6 +232,62 @@ class ApprovedFileHandler(FileSystemEventHandler):
                 self._log_action("EMAIL_SENT", f"Email sent to: {to_email}, subject: {subject}")
             else:
                 self._log_action("EMAIL_SEND_FAILED", f"Failed to send email to: {to_email}")
+
+    def _execute_facebook_action(self, content: str, file_path: Path):
+        """Execute the post_facebook action using browser automation."""
+        if post_to_facebook is None:
+            print("❌ post_to_facebook function not available. Install required dependencies.")
+            self._log_action("FACEBOOK_FAILED", "Browser poster module not available")
+            return
+
+        # Remove YAML header
+        clean_content = self._extract_content(content)
+
+        if self.dry_run:
+            print(f"(DRY RUN) Would post to Facebook: {clean_content[:100]}...")
+            self._log_action("FACEBOOK_DRY_RUN", f"Would post to Facebook: {clean_content[:100]}...")
+            return
+
+        try:
+            success = post_to_facebook(clean_content)
+
+            if success:
+                print(f"SUCCESS: Posted to Facebook!")
+                self._log_action("FACEBOOK_POSTED", f"Posted to Facebook")
+            else:
+                print(f"ERROR: Failed to post to Facebook")
+                self._log_action("FACEBOOK_FAILED", f"Failed to post to Facebook")
+        except Exception as e:
+            print(f"ERROR: Failed to post to Facebook: {e}")
+            self._log_action("FACEBOOK_FAILED", f"Facebook error: {e}")
+
+    def _execute_instagram_action(self, content: str, file_path: Path):
+        """Execute the post_instagram action using browser automation."""
+        if post_to_instagram is None:
+            print("❌ post_to_instagram function not available. Install required dependencies.")
+            self._log_action("INSTAGRAM_FAILED", "Browser poster module not available")
+            return
+
+        # Remove YAML header
+        clean_content = self._extract_content(content)
+
+        if self.dry_run:
+            print(f"(DRY RUN) Would post to Instagram: {clean_content[:100]}...")
+            self._log_action("INSTAGRAM_DRY_RUN", f"Would post to Instagram: {clean_content[:100]}...")
+            return
+
+        try:
+            success = post_to_instagram(clean_content)
+
+            if success:
+                print(f"SUCCESS: Opened Instagram create post!")
+                self._log_action("INSTAGRAM_POSTED", f"Opened Instagram create post")
+            else:
+                print(f"ERROR: Failed to open Instagram create post")
+                self._log_action("INSTAGRAM_FAILED", f"Failed to open Instagram create post")
+        except Exception as e:
+            print(f"ERROR: Failed to open Instagram create post: {e}")
+            self._log_action("INSTAGRAM_FAILED", f"Instagram error: {e}")
 
     def _move_to_done(self, file_path: Path):
         """Move the processed file to the Done folder."""
