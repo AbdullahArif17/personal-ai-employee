@@ -3,13 +3,15 @@ Weekly audit for the Personal AI Employee system.
 Runs automatically every Sunday night and generates comprehensive business reports.
 '''
 
+import sys
 import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import json
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional
-import sys
 
 # Add the src directory to the Python path to allow imports when running as a script
 src_dir = Path(__file__).parent
@@ -44,9 +46,9 @@ file_utils = get_file_utils()
 # Lazy import for OdooIntegration to avoid circular imports
 def get_odoo_integration():
     try:
-        from .odoo_integration import OdooIntegration
+        from .financial_odoo_integration import OdooIntegration
     except ImportError:
-        from odoo_integration import OdooIntegration
+        from financial_odoo_integration import OdooIntegration
     return OdooIntegration()
 
 
@@ -92,31 +94,73 @@ class WeeklyAudit:
         Returns:
             Dictionary containing financial data from Odoo
         """
-        # Calculate date range for last 7 days
-        date_to = datetime.now().strftime('%Y-%m-%d')
-        date_from = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+        try:
+            # Get Odoo integration instance
+            odoo_integration = get_odoo_integration()
 
-        # Get transactions from Odoo
-        transactions = get_odoo_integration().read_transactions(date_from, date_to)
+            # Test connection first
+            success, message = odoo_integration.test_connection()
+            if not success:
+                logger.warning(f"Odoo connection failed: {message}")
+                # Return empty financial data with error info
+                return {
+                    'period': {'from': (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+                              'to': datetime.now().strftime('%Y-%m-%d')},
+                    'transactions': [],
+                    'metrics': {
+                        'total_revenue': 0,
+                        'total_expenses': 0,
+                        'outstanding_payments': 0,
+                        'transaction_count': 0,
+                        'average_transaction_value': 0
+                    },
+                    'error': message
+                }
 
-        # Calculate financial metrics
-        total_revenue = sum(t['total_amount'] for t in transactions)
-        total_subtotal = sum(t['subtotal'] for t in transactions)
-        transaction_count = len(transactions)
+            # Get financial summary
+            financial_summary = odoo_integration.get_financial_summary()
 
-        financial_data = {
-            'period': {'from': date_from, 'to': date_to},
-            'transactions': transactions,
-            'metrics': {
-                'total_revenue': total_revenue,
-                'total_subtotal': total_subtotal,
-                'transaction_count': transaction_count,
-                'average_transaction_value': total_revenue / transaction_count if transaction_count > 0 else 0
+            # Get transactions
+            transactions = odoo_integration.get_transactions(limit=20)
+
+            # Calculate additional metrics
+            transaction_count = len(transactions) if isinstance(transactions, list) else 0
+            total_revenue = financial_summary.get('total_invoiced', 0) if isinstance(financial_summary, dict) else 0
+            total_expenses = financial_summary.get('total_expenses', 0) if isinstance(financial_summary, dict) else 0
+            average_transaction_value = total_revenue / transaction_count if transaction_count > 0 else 0
+
+            financial_data = {
+                'period': financial_summary.get('period', 'Last 30 days') if isinstance(financial_summary, dict) else 'Last 30 days',
+                'transactions': transactions if isinstance(transactions, list) else [],
+                'metrics': {
+                    'total_revenue': total_revenue,
+                    'total_expenses': total_expenses,
+                    'outstanding_payments': financial_summary.get('outstanding_payments', 0) if isinstance(financial_summary, dict) else 0,
+                    'transaction_count': transaction_count,
+                    'average_transaction_value': average_transaction_value
+                }
             }
-        }
 
-        logger.info(f"Retrieved financial data from Odoo: {transaction_count} transactions")
-        return financial_data
+            logger.info(f"Retrieved financial data from Odoo: {transaction_count} transactions, "
+                       f"Revenue: ${total_revenue:.2f}, Expenses: ${total_expenses:.2f}")
+            return financial_data
+
+        except Exception as e:
+            logger.error(f"Error retrieving Odoo financial data: {e}")
+            # Return empty financial data with error info
+            return {
+                'period': {'from': (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+                          'to': datetime.now().strftime('%Y-%m-%d')},
+                'transactions': [],
+                'metrics': {
+                    'total_revenue': 0,
+                    'total_expenses': 0,
+                    'outstanding_payments': 0,
+                    'transaction_count': 0,
+                    'average_transaction_value': 0
+                },
+                'error': str(e)
+            }
 
     def get_social_media_activity_last_week(self) -> Dict[str, Any]:
         """
@@ -193,18 +237,36 @@ This report summarizes business activities for the week ending {datetime.now().s
             mod_time = datetime.fromtimestamp(file_path.stat().st_mtime)
             report += f"  - {mod_time.strftime('%Y-%m-%d %H:%M')} - {file_path.name}\n"
 
+        # Safely access Odoo financial data
+        period_from = odoo_data.get('period', {}).get('from', 'N/A') if isinstance(odoo_data.get('period'), dict) else 'N/A'
+        period_to = odoo_data.get('period', {}).get('to', 'N/A') if isinstance(odoo_data.get('period'), dict) else 'N/A'
+        transaction_count = odoo_data.get('metrics', {}).get('transaction_count', 0) if isinstance(odoo_data.get('metrics'), dict) else 0
+        total_revenue = odoo_data.get('metrics', {}).get('total_revenue', 0) if isinstance(odoo_data.get('metrics'), dict) else 0
+        avg_transaction_value = odoo_data.get('metrics', {}).get('average_transaction_value', 0) if isinstance(odoo_data.get('metrics'), dict) else 0
+
         report += f"""
 
 ## 2. Financial Performance
-- Period: {odoo_data['period']['from']} to {odoo_data['period']['to']}
-- Total Transactions: {odoo_data['metrics']['transaction_count']}
-- Total Revenue: ${odoo_data['metrics']['total_revenue']:,.2f}
-- Average Transaction Value: ${odoo_data['metrics']['average_transaction_value']:,.2f}
+- Period: {period_from} to {period_to}
+- Total Transactions: {transaction_count}
+- Total Revenue: ${total_revenue:,.2f}
+- Average Transaction Value: ${avg_transaction_value:,.2f}
 
 ### Transaction Details:
 """
-        for transaction in odoo_data['transactions']:
-            report += f"  - {transaction['date']}: {transaction['name']} (${transaction['total_amount']:,.2f})\n"
+        # Safely iterate through transactions
+        transactions = odoo_data.get('transactions', [])
+        if isinstance(transactions, list):
+            for transaction in transactions:
+                if isinstance(transaction, dict):
+                    date = transaction.get('date', 'N/A')
+                    name = transaction.get('name', 'N/A')
+                    amount = transaction.get('amount', transaction.get('total_amount', 0))
+                    report += f"  - {date}: {name} (${amount:,.2f})\n"
+                else:
+                    logger.warning(f"Skipping non-dict transaction: {transaction}")
+        else:
+            logger.warning(f"Transactions is not a list: {type(transactions)}")
 
         report += f"""
 
@@ -217,7 +279,7 @@ This report summarizes business activities for the week ending {datetime.now().s
 
 ## 4. Key Metrics & Insights
 - Task completion rate: {len(done_files)} tasks completed
-- Revenue growth: ${odoo_data['metrics']['total_revenue']:,.2f} generated
+- Revenue growth: ${total_revenue:,.2f} generated
 - Content pipeline: {social_data['total_drafts']} social media drafts prepared
 
 ## 5. Recommendations
@@ -317,9 +379,25 @@ This report summarizes business activities for the week ending {datetime.now().s
             # 3. Possibly send a notification
 
             # For demonstration, we'll just add a reference to the audit report in the dashboard
-            from .dashboard_updater import DashboardUpdater
-            dashboard_updater = DashboardUpdater(config.vault_path)
-            dashboard_updater.update_dashboard()
+            try:
+                from dashboard_updater import DashboardUpdater
+                dashboard_updater = DashboardUpdater(config.vault_path)
+                dashboard_updater.update_dashboard()
+            except ImportError as e:
+                logger.warning(f"Could not import DashboardUpdater: {e}")
+            except Exception as e:
+                logger.error(f"Error updating dashboard: {e}")
+
+            # Also try to update the CEO briefing if available
+            try:
+                from ceo_briefing import CEOBriefing
+                ceo_briefing = CEOBriefing(vault_path=config.vault_path)
+                ceo_briefing.generate_briefing()
+                logger.info("CEO Briefing updated successfully")
+            except ImportError as e:
+                logger.warning(f"Could not import CEO Briefing: {e}")
+            except Exception as e:
+                logger.error(f"Error updating CEO Briefing: {e}")
 
             audit_logger.log_external_action("ceo_briefing_updated", "weekly_audit", True, {
                 "report": report_path.name,
