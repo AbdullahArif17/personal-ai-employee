@@ -100,20 +100,15 @@ class LinkedInPoster:
             filepath = self.pending_approval_path / f"LINKEDIN_POST_{timestamp}_{topic_clean}_{counter}.md"
             counter += 1
 
-        # Create markdown content
-        md_content = f"""# LinkedIn Post Draft: {topic}
-
-## Content
-{content}
-
-## Details
-- **Topic**: {topic}
-- **Generated on**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-- **Status**: Pending Approval
-
-## Action Required
-Review this post and move to Approved folder to publish to LinkedIn.
-"""
+        # Create markdown content with YAML frontmatter
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        md_content = f"""---
+action: post_linkedin
+type: insight
+generated: {current_date}
+status: pending_approval
+---
+{content}"""
 
         # Write the file
         with open(filepath, 'w', encoding='utf-8') as f:

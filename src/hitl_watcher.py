@@ -1,19 +1,14 @@
-<<<<<<< HEAD
 """
 HITL (Human-in-the-Loop) Watcher for the Personal AI Employee system.
 Monitors the Approved folder for approved files and executes the appropriate actions.
 """
-import json
-import os
-import requests
-import smtplib
-=======
->>>>>>> 561c08169a1dcfd3d92b53e2b7406218863ced50
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import json
+import os
+import requests
 import smtplib
 import time
 import urllib.parse
@@ -152,12 +147,6 @@ class ApprovedFileHandler(FileSystemEventHandler):
             # Execute the appropriate action
             if action == "send_email":
                 self._execute_email_action(to_email, subject, body, file_path_obj)
-<<<<<<< HEAD
-            elif action == "post_facebook":
-                self._execute_facebook_action(content, file_path_obj)
-            elif action == "post_instagram":
-                self._execute_instagram_action(content, file_path_obj)
-=======
             elif action == "post_tweet":
                 self._execute_tweet_browser_action(body, file_path_obj)
             elif action == "post_thread":
@@ -166,7 +155,8 @@ class ApprovedFileHandler(FileSystemEventHandler):
                 self._execute_facebook_action(body, file_path_obj)
             elif action == "post_instagram":
                 self._execute_instagram_action(body, file_path_obj)
->>>>>>> 561c08169a1dcfd3d92b53e2b7406218863ced50
+            elif action == "post_linkedin":
+                self._execute_linkedin_action(body, file_path_obj)
             else:
                 print(f"WARNING: Unknown action '{action}' in file: {file_path_obj.name}")
                 self._log_action("UNKNOWN_ACTION", f"Unknown action '{action}' in file: {file_path_obj.name}")
@@ -571,6 +561,52 @@ class ApprovedFileHandler(FileSystemEventHandler):
             error_msg = f"Error opening Instagram in browser from {file_path.name}: {str(e)}"
             print(error_msg)
             self._log_action("INSTAGRAM_BROWSER_ERROR", error_msg)
+            return False
+
+    def _execute_linkedin_action(self, content: str, file_path: Path):
+        """Execute a LinkedIn post action using the official API."""
+        if not content:
+            print(f"WARNING: Empty content for LinkedIn post in file: {file_path.name}")
+            self._log_action("LINKEDIN_EMPTY_CONTENT", f"Empty content for LinkedIn post in file: {file_path.name}")
+            return False
+
+        if self.dry_run:
+            print(f"(DRY RUN) Would post to LinkedIn: {content[:100]}...")
+            self._log_action("LINKEDIN_DRY_RUN", f"Would post to LinkedIn: {file_path.name}")
+            return True
+
+        try:
+            # Parse content to remove YAML frontmatter if present
+            clean_content = self._parse_and_clean_social_content(content)
+
+            if not clean_content.strip():
+                print(f"WARNING: No content found after parsing for LinkedIn post in file: {file_path.name}")
+                self._log_action("LINKEDIN_NO_CONTENT_AFTER_PARSE", f"No content found after parsing in file: {file_path.name}")
+                return False
+
+            # Import the LinkedIn poster function
+            sys.path.insert(0, str(Path(__file__).parent))
+            from linkedin_api_poster import post_to_linkedin
+
+            success = post_to_linkedin(clean_content)
+
+            if success:
+                print("SUCCESS: Posted to LinkedIn!")
+                self._log_action("LINKEDIN_POSTED", f"Successfully posted to LinkedIn: {file_path.name}")
+            else:
+                print("ERROR: Failed to post to LinkedIn")
+                self._log_action("LINKEDIN_FAILED", f"Failed to post to LinkedIn: {file_path.name}")
+
+            return success
+
+        except ImportError:
+            print("ERROR: Could not import LinkedIn API poster")
+            self._log_action("LINKEDIN_IMPORT_ERROR", f"Could not import LinkedIn API poster: {file_path.name}")
+            return False
+        except Exception as e:
+            error_msg = f"Error posting to LinkedIn from {file_path.name}: {str(e)}"
+            print(error_msg)
+            self._log_action("LINKEDIN_ERROR", error_msg)
             return False
 
     def _split_into_tweets(self, content: str) -> list:
